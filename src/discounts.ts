@@ -343,7 +343,11 @@ function tierBuckets(rows: Discount[]): Discount[][] {
     bucket.push(row);
     byTier.set(key, bucket);
   }
-  return [...byTier.values()].sort((a, b) => (b[0]?.minServices ?? 0) - (a[0]?.minServices ?? 0));
+  return [...byTier.values()].sort(
+    (a, b) =>
+      (b[0]?.tierRank ?? 0) - (a[0]?.tierRank ?? 0) ||
+      (b[0]?.minServices ?? 0) - (a[0]?.minServices ?? 0),
+  );
 }
 
 /**

@@ -237,6 +237,38 @@ async function main() {
       .join(", "),
   );
 
+  const lidlLinked = await call("find_stations", {
+    location: "Leiria",
+    fuels: ["diesel"],
+    brand: "repsol",
+    cards: ["lidl_plus", "my_repsol"],
+    limit: 3,
+  });
+  const linkedStations = lidlLinked.json.result?.fuels?.[0]?.stations ?? [];
+  check(
+    "Lidl Plus × Repsol yields 10 c/L when My Repsol is linked",
+    linkedStations.some(
+      (station) => station.discount?.program_id === "repsol-lidl-plus" && station.discount.applied_cents === 10,
+    ),
+    linkedStations.map((station) => station.discount?.applied_cents ?? 0).join(", "),
+  );
+
+  const lidlAppOnly = await call("find_stations", {
+    location: "Leiria",
+    fuels: ["diesel"],
+    brand: "repsol",
+    cards: ["lidl_plus"],
+    limit: 3,
+  });
+  const appOnlyStations = lidlAppOnly.json.result?.fuels?.[0]?.stations ?? [];
+  check(
+    "Lidl Plus on its own yields 6 c/L",
+    appOnlyStations.some(
+      (station) => station.discount?.program_id === "repsol-lidl-plus" && station.discount.applied_cents === 6,
+    ),
+    appOnlyStations.map((station) => station.discount?.applied_cents ?? 0).join(", "),
+  );
+
   await client.close();
 
   const failed = results.filter((result) => !result.ok);

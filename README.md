@@ -218,6 +218,21 @@ adds a `discount` block to each station:
   and listed as `catalogued_discounts` rather than guessed.
 - If D1 is unavailable the price tools keep working and set `discounts_unavailable`.
 
+### Verified partner programmes
+
+| Programme | Supplier × partner | Value stored | Source |
+|---|---|---|---|
+| COMBINA (3 tiers) | Galp × Continente, NOS | 8–10 c/L app + 12–20 c/L coupon | Galp |
+| Plano Motor (3 tiers) | Repsol | 8 / 13 / 18 c/L by energy contracts held | Repsol |
+| Lidl Plus × Repsol | Repsol × Lidl | 6 c/L with the app; **10 c/L** when linked to My Repsol (6 immediate + 4 balance) | campaign regulation |
+| Poupa Mais | BP × Pingo Doce | €2 per €40 of groceries (≈4 c/L on a 50 L fill) | Pingo Doce |
+| Primeira quarta-feira | Intermarché | €10 Cartão Poupança on €50+ fuel, first Wednesday (`medium`) | third-party guide |
+
+The Lidl Plus × Repsol campaign runs **1 Jan – 31 Dec 2026** in mainland Portugal and Madeira, and also
+grants a €3 Lidl coupon for every €30 of fuel (max 3 per day, 15-day validity). That coupon is a Lidl
+store coupon, so it is described in the discount notes but deliberately **not** priced into the fuel
+effective price.
+
 ### Keeping it honest
 
 - `npm run discounts:check` — offline gate in CI: schema validation, unique ids, ordered validity

@@ -274,6 +274,59 @@ describe("resolveForStation", () => {
     expect(outcome.applied?.stale).toBe(true);
   });
 
+  it("picks the linked Lidl tier over the app-only tier", () => {
+    const rows = [
+      makeDiscount({
+        id: "immediate",
+        programId: "repsol-lidl-plus",
+        tierId: "linked",
+        tierRank: 2,
+        channel: "instant",
+        value: 6,
+        requires: ["lidl_plus", "my_repsol"],
+      }),
+      makeDiscount({
+        id: "balance",
+        programId: "repsol-lidl-plus",
+        tierId: "linked",
+        tierRank: 2,
+        channel: "coupon",
+        value: 4,
+        requires: ["lidl_plus", "my_repsol"],
+      }),
+      makeDiscount({
+        id: "app-only",
+        programId: "repsol-lidl-plus",
+        tierId: "app-only",
+        tierRank: 1,
+        channel: "instant",
+        value: 6,
+        requires: ["lidl_plus"],
+      }),
+    ];
+
+    const linked = resolveForStation(
+      rows,
+      galpStation,
+      "litro",
+      sanitizeProfile({ cards: ["lidl_plus", "my_repsol"] }),
+      TODAY,
+    );
+    expect(linked.applied?.tierId).toBe("linked");
+    expect(linked.applied?.appliedCents).toBe(10);
+    expect(linked.applied?.guaranteedCents).toBe(6);
+
+    const appOnly = resolveForStation(
+      rows,
+      galpStation,
+      "litro",
+      sanitizeProfile({ cards: ["lidl_plus"] }),
+      TODAY,
+    );
+    expect(appOnly.applied?.tierId).toBe("app-only");
+    expect(appOnly.applied?.appliedCents).toBe(6);
+  });
+
   it("prefers the larger saving when two programmes match", () => {
     const outcome = resolveForStation(
       [

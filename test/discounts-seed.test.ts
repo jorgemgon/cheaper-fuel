@@ -66,6 +66,21 @@ describe("discount seed", () => {
     }
   });
 
+  it("models the Lidl Plus × Repsol campaign from its regulation", () => {
+    const lidl = parsed.filter((entry) => entry.programId === "repsol-lidl-plus");
+    expect(lidl).toHaveLength(3);
+    expect(lidl.every((entry) => entry.confidence === "high")).toBe(true);
+    expect(
+      lidl.every((entry) => entry.validFrom === "2026-01-01" && entry.validUntil === "2026-12-31"),
+    ).toBe(true);
+
+    const linkedTotal = lidl
+      .filter((entry) => entry.tierId === "linked")
+      .reduce((total, entry) => total + (entry.value ?? 0), 0);
+    expect(linkedTotal).toBe(10);
+    expect(lidl.find((entry) => entry.tierId === "app-only")?.value).toBe(6);
+  });
+
   it("quantifies the Repsol tiers from the official benefits table", () => {
     const repsol = parsed.filter((entry) => entry.programId === "repsol-motor");
     expect(repsol).toHaveLength(3);
