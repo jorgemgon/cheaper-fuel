@@ -97,6 +97,22 @@ async function main() {
     `avg ${overview.json.result?.fuels?.[0]?.price_avg}`,
   );
 
+  const detail = await call("get_station_details", { station_name: "Intermarché Leiria" });
+  const resolvedDetail = detail.json.result?.station ?? null;
+  const candidateList = detail.json.result?.candidates ?? [];
+  check(
+    "station details resolve by name",
+    !detail.response.isError && (resolvedDetail !== null || candidateList.length > 0),
+    resolvedDetail ? resolvedDetail.name : `${candidateList.length} candidate(s)`,
+  );
+
+  const locations = await call("list_locations", { query: "Leiria" });
+  check(
+    "place lookup finds Leiria",
+    !locations.response.isError &&
+      (locations.json.result?.municipalities ?? []).some((entry) => entry.name === "Leiria"),
+  );
+
   const history = await call("get_price_history", { fuels: ["diesel"], days: 7 });
   check(
     "price history returns daily points",
