@@ -529,14 +529,18 @@ export function createServer(env: Env): McpServer {
           .max(10)
           .optional()
           .describe(
-            'Loyalty cards or apps the user holds, e.g. ["continente_card"], ["mundo_galp_app"]. ' +
-              "Only programmes whose requirements are all declared can be applied.",
+            'Cards or apps the user holds, e.g. ["continente_card", "mundo_galp_app", ' +
+              '"repsol_partner_card", "poupa_mais_card"]. Programmes whose requirements are not all ' +
+              "declared are reported as locked_discounts instead of applied.",
           ),
         services: z
           .array(z.string())
           .max(10)
           .optional()
-          .describe('Services held for tiered programmes, e.g. ["galp_energy", "nos_package"].'),
+          .describe(
+            'Services or contracts held, e.g. ["galp_energy", "nos_package"], or for Repsol tiers ' +
+              '["repsol_electricity", "repsol_gas"]. They satisfy requirements and set the tier.',
+          ),
         discount_mode: z
           .enum(["best_case", "guaranteed"])
           .optional()

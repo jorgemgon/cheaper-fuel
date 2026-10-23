@@ -292,9 +292,10 @@ change without notice, and the catalogue records the source URL and retrieval da
 - **Discounts are curated, not scraped.** Promotions have no machine-readable source, the mechanics are
   tiered and capped, and third-party summaries are demonstrably wrong; the registry trades freshness
   automation for correctness. Automation covers validation and change detection only.
-- **Only high-confidence programmes affect effective price.** Repsol and BP entries are currently
-  `medium` (the public pages advertise the deal but do not expose the full mechanic to an automated
-  fetch), so they are shown as `possible_discounts` and not applied.
+- **Guaranteed figures, not headlines.** Repsol advertises "up to 10/15/20 c/L" but its benefits table
+  states **8 / 13 / 18 c/L**, so the table values are stored and the headline is only echoed in the
+  notes. Time-boxed, fuel-grade-specific campaigns (e.g. bp Ultimate vouchers) are catalogued but not
+  applied, because DGEG does not distinguish those grades.
 - **No per-station price history.** DGEG publishes daily averages nationally only; per-station
   tracking would need our own D1 + cron snapshots.
 - **No route/corridor search** ("cheapest on the way to Porto").
