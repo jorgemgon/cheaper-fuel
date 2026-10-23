@@ -30,7 +30,10 @@ export interface Profile {
   quantityUnit: QuantityUnit;
 }
 
-const PROFILE_VERSION = 6;
+/** Default search radius for the dashboard, in km. */
+export const DEFAULT_RADIUS_KM = 5;
+
+const PROFILE_VERSION = 7;
 
 const DEFAULTS: Profile = {
   version: PROFILE_VERSION,
@@ -41,7 +44,7 @@ const DEFAULTS: Profile = {
   // first search already shows the best price the user can reach.
   discountsInitialised: false,
   location: "",
-  radiusKm: 15,
+  radiusKm: DEFAULT_RADIUS_KM,
   // Every station inside the radius: the radius itself is the only cap.
   limit: "all",
   // The main page opens ordered by the lowest price, cheapest first.
@@ -76,6 +79,7 @@ if (storedVersion < 4) initial.limit = DEFAULTS.limit;
 if (storedVersion < PROFILE_VERSION) {
   initial.sort = DEFAULTS.sort;
   initial.sortOrder = DEFAULTS.sortOrder;
+  initial.radiusKm = DEFAULTS.radiusKm;
 }
 initial.version = PROFILE_VERSION;
 

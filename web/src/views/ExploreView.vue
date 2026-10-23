@@ -15,7 +15,7 @@ import EmptyState from "../components/EmptyState.vue";
 import MapPanel from "../components/MapPanel.vue";
 import StationCard from "../components/StationCard.vue";
 import { useGeolocation } from "../composables/useGeolocation";
-import { useProfile, type ResultLimit, type SortMode } from "../composables/useProfile";
+import { DEFAULT_RADIUS_KM, useProfile, type ResultLimit, type SortMode } from "../composables/useProfile";
 import { allProfileKeys, buildProfileOptions } from "../lib/discount-labels";
 import { DEFAULT_QUANTITY, normalizeQuantity, QUANTITY_MAX, QUANTITY_MIN } from "../lib/fill-costs";
 import { fuelColor } from "../lib/fuel-colors";
@@ -191,6 +191,10 @@ function syncQuantityInput(): void {
 function resetQuantity(): void {
   profile.value.quantity = DEFAULT_QUANTITY;
   syncQuantityInput();
+}
+
+function resetRadius(): void {
+  profile.value.radiusKm = DEFAULT_RADIUS_KM;
 }
 
 function setSort(key: SortMode) {
@@ -530,7 +534,17 @@ async function runInitialSearch(): Promise<void> {
 
       <div class="row" style="align-items: flex-end">
         <div class="field" style="min-width: 10rem; flex: 1">
-          <label>Raio: {{ profile.radiusKm }} km</label>
+          <div class="field-head">
+            <label>Raio: {{ profile.radiusKm }} km</label>
+            <button
+              v-if="profile.radiusKm !== DEFAULT_RADIUS_KM"
+              type="button"
+              class="clear-btn"
+              @click="resetRadius"
+            >
+              Repor
+            </button>
+          </div>
           <input v-model.number="profile.radiusKm" type="range" min="2" max="60" step="1" />
         </div>
 

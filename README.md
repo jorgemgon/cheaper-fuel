@@ -38,7 +38,8 @@ A Vue 3 PWA served from the same Worker (`/`), designed phone-first for use at t
 - **Explorar** — asks for your location (one tap) or takes a concelho/postcode, then shows the nearest
   stations on a **Leaflet map** with markers colour-coded by *effective price* after discounts,
   synchronised with the result list. It opens with the lowest price first and keeps that order when
-  you use your location. Every station inside the chosen radius is listed by default;
+  you use your location. The radius opens at 5 km and has a `Repor` action back to that default.
+  Every station inside the chosen radius is listed by default;
   `Resultados` can cap the list (10/20/50/100) for a slow connection, and the header says
   `20 de 84 postos` whenever a cap truncates what the radius actually holds. Every card/app and
   service starts selected, so the first search already reflects every discount the catalogue knows;
