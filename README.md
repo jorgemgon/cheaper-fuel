@@ -42,10 +42,11 @@ Six tools, deliberately few, so an agent does not wander between lookups.
 
 | Tool | Use it for |
 |---|---|
-| `find_stations` | **The workhorse.** Cheapest stations near a place / postal code / coordinates, or within a concelho or district. Accepts friendly fuel and brand names. |
-| `get_station_details` | One station: every fuel price, opening hours, services, payment methods. |
-| `get_market_overview` | Per-fuel min / average / median / max and price spread, nationally or regionally. |
-| `get_price_history` | Daily national average prices with the change over the period. |
+| `find_stations` | **The workhorse.** Cheapest stations near a place / postal code / coordinates, or within a concelho or district. Accepts friendly fuel and brand names, and reports the effective price after the loyalty cards the user declares. |
+| `get_station_details` | One station: every fuel price, opening hours, services, payment methods, plus the discounts that apply to it. |
+| `get_market_overview` | Per-fuel min / average / median / max, price spread, and the observed national discount. |
+| `get_price_history` | Daily national average prices and the observed discount, with the change over the period. |
+| `list_discount_programs` | The standardized discount catalogue from D1: supplier, retail partners, mechanics, caps, validity and provenance. |
 | `list_fuel_types` | Fuel catalogue (id, name, unit, road-fuel flag). |
 | `list_locations` | Resolve concelhos, localities and postal codes. |
 
@@ -94,6 +95,109 @@ A proximity call returns the neighbouring concelhos it covered:
 ]
 ```
 
+## Discounts
+
+Discounts come from **two independent sources**, and they are deliberately never added together.
+
+### 1. Observed discounts (automatic, DGEG)
+
+DGEG's daily series publishes both a discounted and an undiscounted national average. The gap is a real,
+observable discount measure:
+
+```
+observed_discount_eur = avg_without_discount − avg
+```
+
+`get_price_history` reports it per day plus a period summary; `get_market_overview` reports the latest
+value per fuel. It is a **national weighted average** across all stations and discount types (fleet cards
+and similar), so it is not attributable to a supplier or station.
+
+### 2. Programme catalogue (curated, stored in D1)
+
+Supplier and retail-chain deals — Galp × Continente/NOS, BP × Pingo Doce, Repsol — are marketing
+promotions with no machine-readable source. They live as **standardized objects in Cloudflare D1**
+(`discounts` table), not in the bundle.
+
+One row = one atomic benefit. A composite programme such as COMBINA (an app discount *plus* a supermarket
+coupon, tiered by how many services you hold) is several rows sharing `programId` + `tierId`.
+
+```jsonc
+{
+  "id": "galp-combina-1-coupon",
+  "programId": "galp-combina",
+  "programTitle": "COMBINA",
+  "tierId": "combina-1",
+  "kind": "loyalty_tier",
+  "supplier": "GALP",
+  "partners": ["CONTINENTE", "NOS"],
+  "stationMatch": { "brands": ["GALP"], "namePrefixes": ["Galp", "PA GALP", "PB GALP"] },
+  "requires": ["continente_card", "spend:continente_30"],
+  "minServices": 1,
+  "channel": "coupon",
+  "valueType": "cents_per_litre",
+  "value": 12,
+  "combine": "sum",
+  "caps": { "litresPerFill": 60, "litresPerYear": null },
+  "validFrom": null,
+  "validUntil": null,
+  "confidence": "high",
+  "source": { "url": "…", "retrievedAt": "2026-10-23", "contentHash": null, "fetchMode": "auto", "notes": "…" },
+  "updatedAt": "2026-10-23"
+}
+```
+
+**There is no `status` column.** Activeness is always derived from `validFrom`/`validUntil` against today
+in Europe/Lisbon — `scheduled`, `active` or `expired`. Editing one date is enough; nothing can drift.
+
+Requirements prefixed `spend:` are conditions the user can trigger by shopping. Everything else is
+something they must already hold, and is gated on the `cards` they declare.
+
+### Effective price
+
+```jsonc
+{ "location": "Leiria", "fuels": ["diesel"], "brand": "galp",
+  "cards": ["continente_card", "mundo_galp_app"], "services": ["galp_energy"] }
+```
+
+adds a `discount` block to each station:
+
+```jsonc
+"discount": {
+  "program_id": "galp-combina", "tier": "combina-1", "label": "1 serviço",
+  "guaranteed_cents": 8, "max_cents": 20, "applied_cents": 20,
+  "effective_price_eur": 2.099, "effective_price_display": "2,099 €/litro",
+  "saves_eur_per_fill": 10,
+  "confidence": "high", "stale": false
+}
+```
+
+- `discount_mode: "guaranteed"` counts only permanent app/instant benefits; the default `best_case` also
+  counts spend-triggered coupons.
+- `fill_litres` (default 50) makes per-fill caps realistic.
+- **Only `confidence: "high"` programmes affect `effective_price`.** Medium/low entries appear as
+  `possible_discounts` with `verify: true`, so an unverified mechanic can never produce a wrong ranking.
+- Programmes whose mechanic is published without a number are stored **unquantified** (`value: null`)
+  and listed as `catalogued_discounts` rather than guessed.
+- If D1 is unavailable the price tools keep working and set `discounts_unavailable`.
+
+### Keeping it honest
+
+- `npm run discounts:check` — offline gate in CI: schema validation, unique ids, ordered validity
+  windows, and no still-applicable programme whose source is more than 90 days old.
+- `npm run discounts:verify` — weekly, network: hashes each official source and reports
+  `UNCHANGED / CHANGED / BLOCKED / ERROR`. **Change detection only — it never rewrites a promotion.**
+- `.github/workflows/discounts-watch.yml` opens or updates an issue when a source moves.
+
+To change a discount: edit `data/discounts.seed.json`, then
+
+```bash
+npm run discounts:migration -- --name refresh-discounts   # generate the next migration
+npm run db:migrate:remote                                  # apply it to D1
+```
+
+> Discounts are **advisory**. Terms belong to the operators, campaigns end, caps apply, and DGEG's list
+> price may already include some fleet-card discount. Always confirm at the pump.
+
 ## How it works
 
 ```
@@ -104,6 +208,7 @@ DGEG JSON API
         └─ MCP tools     → find_stations · get_market_overview · get_station_details
    PMD (daily averages) → get_price_history
    GetDadosPosto        → get_station_details (by id)
+   D1 `discounts` table → effective prices, list_discount_programs
 ```
 
 - **One upstream snapshot per day** powers proximity, regional and market queries. It is cached in the
@@ -135,11 +240,13 @@ per-concelho or per-station history endpoint.
 
 ```bash
 npm install
-npm run dev          # wrangler dev on http://127.0.0.1:8787
+npm run db:migrate:local   # create + seed the local D1 discounts table
+npm run dev                # wrangler dev on http://127.0.0.1:8787
 
-node test/smoke.mjs  # 14 end-to-end checks against the local worker
+node test/smoke.mjs        # 21 end-to-end checks against the local worker
 npm run typecheck
 npm test
+npm run discounts:check
 ```
 
 `npm run smoke -- https://cheaper-fuel.jorgon.workers.dev/mcp` runs the same checks against a
@@ -148,6 +255,7 @@ deployment.
 ## Deploy
 
 ```bash
+npm run db:migrate:remote   # first and after every new discounts migration
 npx wrangler deploy
 ```
 
@@ -158,6 +266,7 @@ Configuration lives in [`wrangler.jsonc`](wrangler.jsonc):
 | `DGEG_BASE_URL` | `https://precoscombustiveis.dgeg.gov.pt/api/PrecoComb` | Upstream API |
 | `CACHE_TTL_SECONDS` | `86400` | Cache lifetime for every upstream call |
 | `USER_AGENT` | `cheaper-fuel-mcp/<version> (+repo)` | Identifying agent sent to DGEG |
+| `DB` (binding) | `cheaper-fuel-discounts` | D1 database holding the standardized discount objects |
 
 To auto-deploy on push, connect the repository in the Cloudflare dashboard (Workers → Git
 integration) or add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets.
@@ -174,8 +283,18 @@ Both requirements are met in every tool response (`source`, `last_updated`) and 
 Prices are **reported by station operators**, not measured by DGEG. This project re-publishes them
 as-is and guarantees nothing about their accuracy. Not affiliated with or endorsed by DGEG.
 
+Discount programmes are compiled from the operators' own public pages. They are third-party terms that
+change without notice, and the catalogue records the source URL and retrieval date for each one. It is
+**not** an official DGEG dataset and carries no endorsement from any supplier or retailer.
+
 ## Limitations and roadmap
 
+- **Discounts are curated, not scraped.** Promotions have no machine-readable source, the mechanics are
+  tiered and capped, and third-party summaries are demonstrably wrong; the registry trades freshness
+  automation for correctness. Automation covers validation and change detection only.
+- **Only high-confidence programmes affect effective price.** Repsol and BP entries are currently
+  `medium` (the public pages advertise the deal but do not expose the full mechanic to an automated
+  fetch), so they are shown as `possible_discounts` and not applied.
 - **No per-station price history.** DGEG publishes daily averages nationally only; per-station
   tracking would need our own D1 + cron snapshots.
 - **No route/corridor search** ("cheapest on the way to Porto").
@@ -187,17 +306,27 @@ as-is and guarantees nothing about their accuracy. Not affiliated with or endors
 
 ```
 src/
-  index.ts      HTTP surface: /mcp, /, /health
-  mcp.ts        MCP server, instructions and the six tools
-  snapshot.ts   paged national snapshot, cached and memoised
-  places.ts     place index and name/postal-code/coordinate resolution
-  geo.ts        haversine, radius widening, concelho grouping
-  dgeg.ts       cache helpers, upstream client, typed errors
-  domain.ts     pure parsing, matching and statistics
-  landing.ts    HTML documentation page
+  index.ts           HTTP surface: /mcp, /, /health
+  mcp.ts             MCP server, instructions and the seven tools
+  discounts.ts       D1 repository, profile resolution and effective pricing
+  discount-schema.ts the standardized Discount object, zod schema and derived status
+  snapshot.ts        paged national snapshot, cached and memoised
+  places.ts          place index and name/postal-code/coordinate resolution
+  geo.ts             haversine, radius widening, concelho grouping
+  dgeg.ts            cache helpers, upstream client, typed errors
+  domain.ts          pure parsing, matching and statistics
+  landing.ts         HTML documentation page
+data/
+  discounts.seed.json  authoring source for the discount registry (not bundled)
+migrations/
+  0001_discounts.sql   D1 schema (no status column)
+  0002_seed_discounts.sql  generated from the seed
+scripts/
+  build-seed-migration.mjs   seed -> migration
+  verify-discount-sources.mjs  source change detection
 test/
-  *.test.ts     unit tests (vitest)
-  smoke.mjs     end-to-end MCP client checks
+  *.test.ts          unit tests (vitest)
+  smoke.mjs          end-to-end MCP client checks
 ```
 
 ## License
