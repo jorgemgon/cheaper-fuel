@@ -1,0 +1,55 @@
+name: Discount source watch
+
+on:
+  schedule:
+    # Mondays at 06:00 UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Verify official discount sources
+        id: verify
+        continue-on-error: true
+        run: npm run discounts:verify
+
+      - name: Open or update the review issue
+        if: steps.verify.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          title="Discount sources changed - review required"
+          body=$(cat <<'EOF'
+          The weekly source check found changed or unreachable discount sources.
+
+          Next steps:
+          1. Run `npm run discounts:verify -- --print` to see the new content hashes.
+          2. Review the affected programmes against their official pages.
+          3. Update `data/discounts.seed.json` (values, `retrievedAt`, `contentHash`).
+          4. Regenerate the migration: `npm run discounts:migration -- --name refresh-discounts`.
+          5. Apply it: `npm run db:migrate:remote` and redeploy.
+
+          This workflow never rewrites a promotion automatically.
+          EOF
+          )
+          existing=$(gh issue list --search "$title in:title" --state open --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "$title" --body "$body"
+          fi

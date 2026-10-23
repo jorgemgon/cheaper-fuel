@@ -24,3 +24,6 @@ jobs:
 
       - name: Unit tests
         run: npm test
+
+      - name: Discount registry checks
+        run: npm run discounts:check
