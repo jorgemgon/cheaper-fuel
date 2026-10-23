@@ -5,7 +5,7 @@ import { computed } from "vue";
 import { formatCents, formatKm, formatRelativeTime } from "../lib/format";
 import { bestPriceDisplay, remainingPriceOptions } from "../lib/price-options";
 
-const props = defineProps<{ station: StationInfo; fuel?: string | null }>();
+const props = defineProps<{ station: StationInfo }>();
 const emit = defineEmits<{ focus: [id: number] }>();
 
 const bestPrice = computed(() => bestPriceDisplay(props.station));
@@ -23,7 +23,6 @@ const priceOptions = computed(() => remainingPriceOptions(props.station));
         </div>
       </div>
       <div class="row" style="gap: 0.35rem; justify-content: flex-end">
-        <span v-if="props.fuel" class="badge badge-fuel">{{ props.fuel }}</span>
         <span v-if="props.station.distance_km !== undefined" class="badge">
           {{ formatKm(props.station.distance_km) }}
         </span>

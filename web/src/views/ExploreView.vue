@@ -17,6 +17,7 @@ import { useGeolocation } from "../composables/useGeolocation";
 import { useProfile, type ResultLimit, type SortMode } from "../composables/useProfile";
 import { buildProfileOptions } from "../lib/discount-labels";
 import { formatDate, formatRelativeTime } from "../lib/format";
+import { buildFuelGroups, fuelGroupCount } from "../lib/fuel-groups";
 import { GEO_CACHE_TTL_MS, isFresh } from "../lib/geo";
 import { nextSortState } from "../lib/sort-order";
 import { readJson, writeJson } from "../lib/storage";
@@ -57,17 +58,10 @@ const serviceOptions = computed(() =>
 );
 
 const fuels = computed(() => result.value?.result.fuels ?? []);
-// One row per station+fuel: the same station can appear once per selected fuel,
-// so the fuel name travels with the entry and is part of the list key.
-const stationRows = computed(() =>
-  fuels.value.flatMap((fuel) =>
-    fuel.stations.map((station) => ({
-      key: `${station.id}-${fuel.fuel}`,
-      station,
-      fuel: fuel.fuel,
-    })),
-  ),
-);
+// One collapsible section per selected fuel; the same station can appear once
+// per fuel, so the list key is station + fuel.
+const fuelGroups = computed(() => buildFuelGroups(fuels.value));
+const stationRows = computed(() => fuelGroups.value.flatMap((group) => group.rows));
 const stations = computed<StationInfo[]>(() => stationRows.value.map((row) => row.station));
 const multipleFuels = computed(() => fuels.value.length > 1);
 const distinctStations = computed(() => new Set(stations.value.map((station) => station.id)).size);
@@ -417,9 +411,6 @@ async function runInitialSearch(): Promise<void> {
         </div>
 
         <p v-if="truncatedFuels.length > 0" class="tiny muted">
-          <template v-if="truncatedFuels.length > 1">
-            {{ truncatedFuels.map((fuel) => `${fuel.fuel}: ${fuel.stations.length} de ${fuel.stations_found} postos`).join(" · ") }}.
-          </template>
           {{ limitNotice }}
         </p>
 
@@ -433,13 +424,34 @@ async function runInitialSearch(): Promise<void> {
           message="Aumenta o raio, remove filtros de marca ou escolhe outro concelho."
         />
 
-        <StationCard
-          v-for="row in stationRows"
-          :key="row.key"
-          :station="row.station"
-          :fuel="multipleFuels ? row.fuel : null"
-          @focus="() => undefined"
-        />
+        <template v-else-if="multipleFuels">
+          <details v-for="group in fuelGroups" :key="group.fuel" class="fuel-group" open>
+            <summary class="fuel-group-head">
+              <span class="fuel-group-title">{{ group.fuel }}</span>
+              <span class="tiny muted">{{ fuelGroupCount(group) }}</span>
+            </summary>
+            <div class="fuel-group-body">
+              <p v-if="group.rows.length === 0" class="tiny muted">
+                Sem postos neste raio para este combustível.
+              </p>
+              <StationCard
+                v-for="row in group.rows"
+                :key="`${row.station.id}-${row.fuel}`"
+                :station="row.station"
+                @focus="() => undefined"
+              />
+            </div>
+          </details>
+        </template>
+
+        <template v-else>
+          <StationCard
+            v-for="row in stationRows"
+            :key="`${row.station.id}-${row.fuel}`"
+            :station="row.station"
+            @focus="() => undefined"
+          />
+        </template>
 
         <p v-if="result.result.note" class="notice tiny">{{ result.result.note }}</p>
       </div>

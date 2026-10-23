@@ -43,8 +43,9 @@ A Vue 3 PWA served from the same Worker (`/`), designed phone-first for use at t
   `20 de 84 postos` whenever a cap truncates what the radius actually holds. Each card leads with the
   best price after discounts and lists the remaining prices — the guaranteed slice, the base price and
   any other card/app you hold — so no price is hidden behind a mode switch. Selecting several fuels
-  tags each card with its fuel, and the map keeps one marker per station with every selected fuel's
-  price in its popup.
+  puts the cards in one collapsible section per fuel (with its own count, and `20 de 84` when the
+  results limit truncates it); the map keeps one marker per station with every selected fuel's price
+  in its popup.
 - **Mercado** — per-fuel min/average/median/max, spread, observed national discount and a comparison
   chart.
 - **Histórico** — daily national averages as **Chart.js** line and bar charts (with and without discount).
