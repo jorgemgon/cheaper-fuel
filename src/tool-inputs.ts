@@ -44,6 +44,10 @@ export const findStationsInput = z.object({
       "Rank by distance (proximity searches), price, or effective price after discounts. " +
         "Region rankings default to price.",
     ),
+  sort_order: z
+    .enum(["asc", "desc"])
+    .optional()
+    .describe('Sort direction: "asc" (default, cheapest/nearest first) or "desc" (dearest/farthest first).'),
   cards: z
     .array(z.string())
     .max(10)

@@ -118,6 +118,7 @@ export function stationsQuery(search: URLSearchParams) {
     max_price: numberParam(search, "max_price"),
     updated_within_hours: numberParam(search, "updated_within_hours"),
     sort: textParam(search, "sort"),
+    sort_order: textParam(search, "sort_order"),
     ...discountParams(search),
   };
 }

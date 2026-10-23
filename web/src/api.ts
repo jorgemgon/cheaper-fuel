@@ -78,6 +78,7 @@ export interface StationQuery {
   max_price?: number;
   updated_within_hours?: number;
   sort?: "distance" | "price" | "effective_price";
+  sort_order?: "asc" | "desc";
   cards?: string[];
   services?: string[];
   discount_mode?: "best_case" | "guaranteed";

@@ -560,6 +560,7 @@ export async function findStations(env: Env, args: FindStationsArgs): Promise<Fi
     const radiusKm = args.radius_km ?? 15;
     const maxRadiusKm = Math.max(radiusKm, args.max_radius_km ?? 40);
     const sort = args.sort ?? "distance";
+    const order = args.sort_order ?? "asc";
     const wantsEffectiveSort = sort === "effective_price";
 
     const discountContext = await loadDiscountContext(
@@ -582,6 +583,7 @@ export async function findStations(env: Env, args: FindStationsArgs): Promise<Fi
       // Sorting by effective price needs a wider pool to sort through.
       limitPerFuel: wantsEffectiveSort ? Math.min(25, limit * 3) : limit,
       sort: wantsEffectiveSort ? "distance" : sort,
+      order,
     });
 
     const fuelResults: FuelStationList[] = fuels.map((fuel) => {
@@ -592,7 +594,13 @@ export async function findStations(env: Env, args: FindStationsArgs): Promise<Fi
       );
       const stations = (
         wantsEffectiveSort
-          ? [...entries].sort((a, b) => a.effectivePrice - b.effectivePrice).slice(0, limit)
+          ? [...entries]
+              .sort((a, b) =>
+                order === "desc"
+                  ? b.effectivePrice - a.effectivePrice
+                  : a.effectivePrice - b.effectivePrice,
+              )
+              .slice(0, limit)
           : entries
       ).map((entry) => entry.payload);
 
@@ -621,6 +629,7 @@ export async function findStations(env: Env, args: FindStationsArgs): Promise<Fi
         max_radius_km: maxRadiusKm,
         limit_per_fuel: limit,
         sort,
+        sort_order: order,
         brand: brandName,
         station_type: args.station_type ?? null,
         discounts: {
@@ -659,6 +668,7 @@ export async function findStations(env: Env, args: FindStationsArgs): Promise<Fi
   });
 
   const sort = args.sort ?? "price";
+  const order = args.sort_order ?? "asc";
   const wantsEffectiveSort = sort === "effective_price";
 
   const discountContext = await loadDiscountContext(
@@ -676,11 +686,17 @@ export async function findStations(env: Env, args: FindStationsArgs): Promise<Fi
     const unit = fuel.unit;
     const rowsForFuel = regionRows.filter((row) => normalizeText(row.fuel) === normalizeText(fuel.name));
     // Without a reference point, distance ranking is meaningless.
-    const pool = sortByPrice(rowsForFuel, wantsEffectiveSort ? Math.min(25, limit * 3) : limit);
+    const pool = sortByPrice(rowsForFuel, wantsEffectiveSort ? Math.min(25, limit * 3) : limit, order);
     const entries = pool.map((row) => stationEntry(discountContext, row, unit));
     const stations = (
       wantsEffectiveSort
-        ? [...entries].sort((a, b) => a.effectivePrice - b.effectivePrice).slice(0, limit)
+        ? [...entries]
+            .sort((a, b) =>
+              order === "desc"
+                ? b.effectivePrice - a.effectivePrice
+                : a.effectivePrice - b.effectivePrice,
+            )
+            .slice(0, limit)
         : entries
     ).map((entry) => entry.payload);
 
@@ -698,6 +714,7 @@ export async function findStations(env: Env, args: FindStationsArgs): Promise<Fi
       fuels: fuelNames,
       limit_per_fuel: limit,
       sort,
+      sort_order: order,
       brand: brandName,
       station_type: args.station_type ?? null,
       discounts: {

@@ -71,12 +71,24 @@ export function municipalitiesCovered(
 }
 
 export type SortMode = "distance" | "price";
+export type SortOrder = "asc" | "desc";
 
-function compareRows(sort: SortMode, a: RowWithDistance, b: RowWithDistance): number {
+function compareRows(sort: SortMode, order: SortOrder, a: RowWithDistance, b: RowWithDistance): number {
+  const byDistance = a.distanceKm - b.distanceKm;
+
   if (sort === "distance") {
-    return a.distanceKm - b.distanceKm || (a.price ?? Number.POSITIVE_INFINITY) - (b.price ?? Number.POSITIVE_INFINITY);
+    if (byDistance !== 0) return order === "desc" ? -byDistance : byDistance;
+    return (a.price ?? Number.POSITIVE_INFINITY) - (b.price ?? Number.POSITIVE_INFINITY);
   }
-  return (a.price ?? Number.POSITIVE_INFINITY) - (b.price ?? Number.POSITIVE_INFINITY) || a.distanceKm - b.distanceKm;
+
+  // Unpriced stations always sink to the bottom, whichever direction is used.
+  if (a.price === null && b.price === null) return byDistance;
+  if (a.price === null) return 1;
+  if (b.price === null) return -1;
+
+  const byPrice = a.price - b.price;
+  if (byPrice !== 0) return order === "desc" ? -byPrice : byPrice;
+  return byDistance;
 }
 
 function groupByFuel(
@@ -84,6 +96,7 @@ function groupByFuel(
   fuelNames: readonly string[],
   limit: number,
   sort: SortMode,
+  order: SortOrder,
 ): Map<string, RowWithDistance[]> {
   const byKey = new Map<string, string>(fuelNames.map((name) => [normalizeText(name), name]));
   const grouped = new Map<string, RowWithDistance[]>(fuelNames.map((name) => [name, []]));
@@ -95,7 +108,7 @@ function groupByFuel(
   }
 
   for (const [name, list] of grouped) {
-    grouped.set(name, list.sort((a, b) => compareRows(sort, a, b)).slice(0, limit));
+    grouped.set(name, list.sort((a, b) => compareRows(sort, order, a, b)).slice(0, limit));
   }
 
   return grouped;
@@ -109,6 +122,7 @@ export interface ProximityOptions {
   maxRadiusKm: number;
   limitPerFuel: number;
   sort: SortMode;
+  order?: SortOrder;
 }
 
 export interface ProximityResult {
@@ -123,7 +137,7 @@ export interface ProximityResult {
  * concelho automatically include its neighbours.
  */
 export function searchProximity(options: ProximityOptions): ProximityResult {
-  const { rows, fuelNames, point, radiusKm, maxRadiusKm, limitPerFuel, sort } = options;
+  const { rows, fuelNames, point, radiusKm, maxRadiusKm, limitPerFuel, sort, order = "asc" } = options;
   const withDistance = attachDistance(rows, point);
   const ceiling = Math.max(radiusKm, maxRadiusKm);
 
@@ -139,19 +153,34 @@ export function searchProximity(options: ProximityOptions): ProximityResult {
 
   for (const radius of radii) {
     const withinRadius = withDistance.filter((row) => row.distanceKm <= radius);
-    const byFuel = groupByFuel(withinRadius, fuelNames, limitPerFuel, sort);
+    const byFuel = groupByFuel(withinRadius, fuelNames, limitPerFuel, sort, order);
     lastResult = { effectiveRadiusKm: radius, byFuel, withinRadius };
 
     const satisfied = fuelNames.every((name) => (byFuel.get(name)?.length ?? 0) >= limitPerFuel);
     if (satisfied) return lastResult;
   }
 
-  return lastResult ?? { effectiveRadiusKm: radiusKm, byFuel: groupByFuel([], fuelNames, limitPerFuel, sort), withinRadius: [] };
+  return lastResult ?? {
+    effectiveRadiusKm: radiusKm,
+    byFuel: groupByFuel([], fuelNames, limitPerFuel, sort, order),
+    withinRadius: [],
+  };
 }
 
-export function sortByPrice<T extends { price: number | null }>(rows: readonly T[], limit: number): T[] {
+export function sortByPrice<T extends { price: number | null }>(
+  rows: readonly T[],
+  limit: number,
+  order: SortOrder = "asc",
+): T[] {
+  const sign = order === "desc" ? -1 : 1;
   return [...rows]
-    .sort((a, b) => (a.price ?? Number.POSITIVE_INFINITY) - (b.price ?? Number.POSITIVE_INFINITY))
+    .sort((a, b) => {
+      // Unpriced entries stay last in both directions.
+      if (a.price === null && b.price === null) return 0;
+      if (a.price === null) return 1;
+      if (b.price === null) return -1;
+      return sign * (a.price - b.price);
+    })
     .slice(0, limit);
 }
 

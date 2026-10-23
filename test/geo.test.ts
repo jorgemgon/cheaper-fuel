@@ -131,4 +131,48 @@ describe("sortByPrice", () => {
     );
     expect(sorted.map((entry) => entry.price)).toEqual([1.9, 2.2]);
   });
+
+  it("can rank dearest first", () => {
+    const sorted = sortByPrice(
+      [{ price: 1.9 }, { price: 2.4 }, { price: 2.1 }],
+      3,
+      "desc",
+    );
+    expect(sorted.map((entry) => entry.price)).toEqual([2.4, 2.1, 1.9]);
+  });
+
+  it("keeps nulls out of a descending ranking", () => {
+    const sorted = sortByPrice([{ price: null }, { price: 2.4 }], 1, "desc");
+    expect(sorted.map((entry) => entry.price)).toEqual([2.4]);
+  });
+});
+
+describe("searchProximity ordering", () => {
+  const point = { lat: 39.7436, lon: -8.8071 };
+
+  const rows = [
+    row({ id: 1, name: "Near cheap", fuel: "Diesel", price: 1.9, lat: 39.75, lon: -8.81 }),
+    row({ id: 2, name: "Near dear", fuel: "Diesel", price: 2.4, lat: 39.751, lon: -8.812 }),
+    row({ id: 3, name: "Far mid", fuel: "Diesel", price: 2.1, lat: 39.9, lon: -8.9 }),
+  ];
+
+  const run = (order: "asc" | "desc") =>
+    searchProximity({
+      rows,
+      fuelNames: ["Diesel"],
+      point,
+      radiusKm: 40,
+      maxRadiusKm: 40,
+      limitPerFuel: 3,
+      sort: "price",
+      order,
+    }).byFuel.get("Diesel")!.map((row) => row.id);
+
+  it("ranks cheapest first by default", () => {
+    expect(run("asc")).toEqual([1, 3, 2]);
+  });
+
+  it("ranks dearest first when asked", () => {
+    expect(run("desc")).toEqual([2, 3, 1]);
+  });
 });

@@ -62,7 +62,13 @@ const sortOptions: Array<{ key: SortMode; label: string }> = [
 ];
 
 function setSort(key: SortMode) {
+  // Clicking the active key flips the direction, like a table header.
+  if (profile.value.sort === key) {
+    profile.value.sortOrder = profile.value.sortOrder === "desc" ? "asc" : "desc";
+    return;
+  }
   profile.value.sort = key;
+  profile.value.sortOrder = key === "distance" ? "asc" : "desc";
 }
 
 function setDiscountMode(event: Event) {
@@ -75,6 +81,7 @@ function buildQuery(): StationQuery | null {
     fuels: profile.value.fuels,
     limit: profile.value.limit,
     sort: profile.value.sort,
+    sort_order: profile.value.sortOrder,
     radius_km: profile.value.radiusKm,
     cards: profile.value.cards,
     services: profile.value.services,
@@ -257,9 +264,15 @@ onMounted(async () => {
               type="button"
               class="chip"
               :class="{ 'is-on': profile.sort === option.key }"
+              :title="
+                profile.sort === option.key
+                  ? 'Clica para inverter a ordem'
+                  : `Ordenar por ${option.label.toLowerCase()}`
+              "
               @click="setSort(option.key)"
             >
               {{ option.label }}
+              <template v-if="profile.sort === option.key">{{ profile.sortOrder === "desc" ? "↓" : "↑" }}</template>
             </button>
           </div>
         </div>
