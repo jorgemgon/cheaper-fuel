@@ -51,12 +51,24 @@ function clearFuels(): void {
   profile.value.fuels = [];
 }
 
+function selectAllFuels(): void {
+  profile.value.fuels = props.fuelOptions.map((option) => option.key);
+}
+
 function clearCards(): void {
   profile.value.cards = [];
 }
 
+function selectAllCards(): void {
+  profile.value.cards = props.cardOptions.map((option) => option.key);
+}
+
 function clearServices(): void {
   profile.value.services = [];
+}
+
+function selectAllServices(): void {
+  profile.value.services = props.serviceOptions.map((option) => option.key);
 }
 
 function resetRadius(): void {
@@ -90,9 +102,20 @@ function resetQuantity(): void {
     <div class="field">
       <div class="field-head">
         <label>Combustível</label>
-        <button v-if="profile.fuels.length > 0" type="button" class="clear-btn" @click="clearFuels">
-          Limpar
-        </button>
+        <div class="field-actions">
+          <button
+            v-if="profile.fuels.length < props.fuelOptions.length"
+            type="button"
+            class="clear-btn"
+            aria-label="Selecionar todos os combustíveis"
+            @click="selectAllFuels"
+          >
+            Tudo
+          </button>
+          <button v-if="profile.fuels.length > 0" type="button" class="clear-btn" @click="clearFuels">
+            Limpar
+          </button>
+        </div>
       </div>
       <ChipGroup :options="props.fuelOptions" :model-value="profile.fuels" @toggle="toggleFuel" />
     </div>
@@ -100,9 +123,20 @@ function resetQuantity(): void {
     <div class="field">
       <div class="field-head">
         <label>Cartões e apps</label>
-        <button v-if="profile.cards.length > 0" type="button" class="clear-btn" @click="clearCards">
-          Limpar
-        </button>
+        <div class="field-actions">
+          <button
+            v-if="profile.cards.length < props.cardOptions.length"
+            type="button"
+            class="clear-btn"
+            aria-label="Selecionar todos os cartões e apps"
+            @click="selectAllCards"
+          >
+            Tudo
+          </button>
+          <button v-if="profile.cards.length > 0" type="button" class="clear-btn" @click="clearCards">
+            Limpar
+          </button>
+        </div>
       </div>
       <ChipGroup :options="props.cardOptions" :model-value="profile.cards" @toggle="toggleCard" />
     </div>
@@ -110,9 +144,20 @@ function resetQuantity(): void {
     <div v-if="props.serviceOptions.length > 0" class="field">
       <div class="field-head">
         <label>Serviços e contratos</label>
-        <button v-if="profile.services.length > 0" type="button" class="clear-btn" @click="clearServices">
-          Limpar
-        </button>
+        <div class="field-actions">
+          <button
+            v-if="profile.services.length < props.serviceOptions.length"
+            type="button"
+            class="clear-btn"
+            aria-label="Selecionar todos os serviços e contratos"
+            @click="selectAllServices"
+          >
+            Tudo
+          </button>
+          <button v-if="profile.services.length > 0" type="button" class="clear-btn" @click="clearServices">
+            Limpar
+          </button>
+        </div>
       </div>
       <ChipGroup :options="props.serviceOptions" :model-value="profile.services" @toggle="toggleService" />
     </div>

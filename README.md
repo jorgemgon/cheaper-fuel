@@ -52,8 +52,8 @@ A Vue 3 PWA served from the same Worker (`/`), designed phone-first for use at t
   base / electricity / gas, or a flat per-fill coupon — with each level's resulting price and the spend
   for the chosen quantity, and the active level highlighted.
   Filters only restrict when they have a value: clearing the fuel chips requests every fuel, clearing
-  cards/services goes back to list prices, and each filter, the location and the quantity carry a
-  clear action.
+  cards/services goes back to list prices. Fuel, card and service groups carry `Tudo` (select every
+  option) and `Limpar` actions, and each filter, the location and the quantity have a clear action.
   Selecting several fuels groups the cards by fuel — collapsible sections on desktop, a tabbed swipe
   carousel on phones — each with its own count and `20 de 84` when the results limit truncates it.
   Fuel filter chips and those section headers share an identity colour —

@@ -239,6 +239,12 @@ p {
   gap: 0.5rem;
 }
 
+.field-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
 .clear-btn {
   flex-shrink: 0;
   border: 0;
