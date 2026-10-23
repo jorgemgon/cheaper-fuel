@@ -41,6 +41,7 @@ async function main() {
     "get_station_details",
     "get_market_overview",
     "get_price_history",
+    "list_discount_programs",
     "list_fuel_types",
     "list_locations",
   ];
@@ -122,6 +123,61 @@ async function main() {
 
   const catalogue = await call("list_fuel_types", {});
   check("fuel catalogue is served", (catalogue.json.result?.fuels?.length ?? 0) >= 10);
+
+  const programs = await call("list_discount_programs", {});
+  const programList = programs.json.result?.programs ?? [];
+  check(
+    "discount catalogue is served from D1",
+    !programs.response.isError && programList.length > 0,
+    `${programList.length} programme(s)`,
+  );
+  check(
+    "COMBINA is catalogued",
+    programList.some((program) => program.program_id === "galp-combina"),
+  );
+  check(
+    "programme status is derived, not stored",
+    programList.every((program) => program.status === "active"),
+    programList.map((program) => program.status).join(", "),
+  );
+
+  const expired = await call("list_discount_programs", { status: "expired" });
+  check(
+    "ended campaign derives expired status",
+    (expired.json.result?.programs ?? []).some((program) => program.program_id === "bp-voltar-e-poupar"),
+  );
+
+  const discounted = await call("find_stations", {
+    location: "Leiria",
+    fuels: ["diesel"],
+    brand: "galp",
+    cards: ["continente_card", "mundo_galp_app"],
+    services: ["galp_energy"],
+    limit: 5,
+  });
+  const discountedStations = discounted.json.result?.fuels?.[0]?.stations ?? [];
+  const withDiscount = discountedStations.filter((station) => station.discount);
+  check(
+    "declared cards unlock an effective price",
+    withDiscount.length > 0,
+    `${withDiscount.length}/${discountedStations.length} station(s)`,
+  );
+  check(
+    "effective price never exceeds the list price",
+    withDiscount.every((station) => station.discount.effective_price_eur <= station.price_eur),
+  );
+
+  const withoutCards = await call("find_stations", {
+    location: "Leiria",
+    fuels: ["diesel"],
+    brand: "galp",
+    limit: 3,
+  });
+  const noCardStations = withoutCards.json.result?.fuels?.[0]?.stations ?? [];
+  check(
+    "without cards the app discount is not applied",
+    noCardStations.every((station) => !station.discount),
+  );
 
   await client.close();
 
