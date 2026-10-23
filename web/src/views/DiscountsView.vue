@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import type { DiscountEntryInfo, DiscountProgrammeInfo } from "@contracts";
 import { computed, onMounted, ref } from "vue";
+import { useRoute } from "vue-router";
 
 import { api, ApiError } from "../api";
 import ChipGroup from "../components/ChipGroup.vue";
 import EmptyState from "../components/EmptyState.vue";
 import { labelForRequirement } from "../lib/discount-labels";
+import { sourceLinks } from "../lib/sources";
 import { formatCents, formatDate, formatMoney } from "../lib/format";
 
+const route = useRoute();
 const programmes = ref<DiscountProgrammeInfo[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -21,7 +24,9 @@ const supplierOptions = computed(() => {
 
 const visible = computed(() =>
   programmes.value
-    .filter((programme) => (supplier.value ? programme.supplier === supplier.value : true))
+    .filter((programme) =>
+      supplier.value ? programme.supplier.toLowerCase() === supplier.value.toLowerCase() : true,
+    )
     .filter((programme) => (status.value === "all" ? true : programme.status === status.value)),
 );
 
@@ -46,15 +51,6 @@ function formatValue(discount: DiscountEntryInfo): string {
   return `${formatMoney(discount.value)} por abastecimento`;
 }
 
-function sourceLabel(source: string): string {
-  if (source.includes(".pdf")) return "regulamento";
-  try {
-    return new URL(source).hostname;
-  } catch {
-    return source;
-  }
-}
-
 async function load(): Promise<void> {
   loading.value = true;
   error.value = null;
@@ -68,7 +64,12 @@ async function load(): Promise<void> {
   }
 }
 
-onMounted(load);
+onMounted(() => {
+  // Shareable filter: /discounts?supplier=repsol
+  const fromQuery = typeof route.query.supplier === "string" ? route.query.supplier : null;
+  if (fromQuery) supplier.value = fromQuery;
+  void load();
+});
 </script>
 
 <template>
@@ -155,11 +156,16 @@ onMounted(load);
           </div>
         </div>
 
-        <p class="tiny muted" style="margin: 0">
-          Fontes:
-          <a v-for="source in [...new Set(programme.discounts.map((entry) => entry.source.url))]" :key="source" :href="source" target="_blank" rel="noopener">
-            {{ sourceLabel(source) }}
-          </a>
+        <p class="row tiny muted" style="gap: 0.6rem; margin: 0">
+          <span>Fontes:</span>
+          <a
+            v-for="link in sourceLinks(programme.discounts)"
+            :key="link.url"
+            :href="link.url"
+            :title="link.url"
+            target="_blank"
+            rel="noopener"
+          >{{ link.label }}</a>
         </p>
       </article>
 
