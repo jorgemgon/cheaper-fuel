@@ -15,7 +15,12 @@ const programmes = ref<DiscountProgrammeInfo[]>([]);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const supplier = ref<string | null>(null);
-const status = ref<"all" | "active" | "scheduled" | "expired">("all");
+
+const STATUS_FILTERS = ["active", "scheduled", "expired", "all"] as const;
+type StatusFilter = (typeof STATUS_FILTERS)[number];
+
+// Land on running promotions; finished campaigns stay one click away.
+const status = ref<StatusFilter>("active");
 
 const supplierOptions = computed(() => {
   const suppliers = new Set(programmes.value.map((programme) => programme.supplier));
@@ -65,9 +70,15 @@ async function load(): Promise<void> {
 }
 
 onMounted(() => {
-  // Shareable filter: /discounts?supplier=repsol
-  const fromQuery = typeof route.query.supplier === "string" ? route.query.supplier : null;
-  if (fromQuery) supplier.value = fromQuery;
+  // Shareable filters: /discounts?supplier=repsol&status=all
+  const supplierParam = typeof route.query.supplier === "string" ? route.query.supplier : null;
+  if (supplierParam) supplier.value = supplierParam;
+
+  const statusParam = typeof route.query.status === "string" ? route.query.status : null;
+  if (statusParam && (STATUS_FILTERS as readonly string[]).includes(statusParam)) {
+    status.value = statusParam as StatusFilter;
+  }
+
   void load();
 });
 </script>
@@ -94,7 +105,7 @@ onMounted(() => {
         <label>Estado</label>
         <div class="tabs">
           <button
-            v-for="option in ['all', 'active', 'scheduled', 'expired'] as const"
+            v-for="option in STATUS_FILTERS"
             :key="option"
             type="button"
             class="chip"
