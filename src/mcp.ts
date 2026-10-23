@@ -103,6 +103,8 @@ export function createServer(env: Env): McpServer {
         "neighbouring concelhos and report which concelhos were included. Accepts friendly fuel names " +
         "(diesel, 95, 98, gpl) and defaults to Gasóleo simples + Gasolina simples 95. " +
         "Returns prices, addresses, coordinates, distances, map links and timestamps in one call. " +
+        "Each discount carries `levels`: every tier of the programme with the price it would give, " +
+        "so a smaller discount can be compared with the applied one. " +
         "No prerequisite lookup is needed.",
       inputSchema: findStationsInput,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
@@ -117,6 +119,7 @@ export function createServer(env: Env): McpServer {
       description:
         "Full detail for a single station: every fuel it sells with prices, opening hours, services, " +
         "payment methods and address. Pass station_id, or station_name to look it up by name. " +
+        "Each fuel's discount carries the programme's `levels` with the price of every tier. " +
         "Only needed for hours/services/payments — find_stations already returns prices and locations.",
       inputSchema: stationDetailsInput,
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },

@@ -297,13 +297,26 @@ adds a `discount` block to each station:
   "guaranteed_cents": 8, "max_cents": 20, "applied_cents": 20,
   "effective_price_eur": 2.099, "effective_price_display": "2,099 €/litro",
   "saves_eur_per_fill": 10,
-  "confidence": "high", "stale": false
+  "confidence": "high", "stale": false,
+  "levels": [
+    { "tier": "combina-1", "label": "1 serviço", "min_services": 1,
+      "value_type": "cents_per_litre", "value": 20, "cents_per_litre": 20,
+      "effective_price_eur": 2.099, "effective_price_display": "2,099 €/litro" },
+    { "tier": "combina-2", "label": "2 serviços", "min_services": 2,
+      "value_type": "cents_per_litre", "value": 25, "cents_per_litre": 25,
+      "effective_price_eur": 2.049, "effective_price_display": "2,049 €/litro" },
+    { "tier": "combina-3", "label": "3+ serviços", "min_services": 3,
+      "value_type": "cents_per_litre", "value": 30, "cents_per_litre": 30,
+      "effective_price_eur": 1.999, "effective_price_display": "1,999 €/litro" }
+  ]
 }
 ```
 
 - `discount_mode: "guaranteed"` counts only permanent app/instant benefits; the default `best_case` also
   counts spend-triggered coupons.
 - `fill_litres` (default 50) makes per-fill caps realistic.
+- `levels` lists every tier of the programme with the price each tier would give (best case, without
+  applying weekday schedules), so a smaller discount can be compared with the applied one.
 - **Only `confidence: "high"` programmes affect `effective_price`.** Medium/low entries appear as
   `possible_discounts` with `verify: true`, so an unverified mechanic can never produce a wrong ranking.
 - Programmes whose mechanic is published without a number are stored **unquantified** (`value: null`)

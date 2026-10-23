@@ -4,6 +4,7 @@
  */
 import type {
   DiscountInfo,
+  DiscountLevelInfo,
   DiscountsResult,
   FindStationsResult,
   FuelStationList,
@@ -64,6 +65,7 @@ import {
 import {
   groupProgrammes,
   loadDiscounts,
+  programmeLevels,
   resolveForStation,
   sanitizeProfile,
   type DiscountOutcome,
@@ -71,6 +73,8 @@ import {
   type DiscountProfileInput,
   type DiscountRegistry,
   type DiscountResolution,
+  type ProgrammeLevel,
+  type StationLike,
 } from "./discounts";
 import type {
   DiscountProgramsArgs,
@@ -351,19 +355,63 @@ function resolutionPayload(
   };
 }
 
+function levelPayload(level: ProgrammeLevel, unit: string | null): DiscountLevelInfo {
+  return {
+    tier: level.tierId,
+    label: level.label,
+    min_services: level.minServices,
+    value_type: level.valueType,
+    value: level.value,
+    cents_per_litre: level.centsPerLitre,
+    effective_price_eur: level.effectivePriceEur,
+    effective_price_display: formatPrice(level.effectivePriceEur, unit),
+  };
+}
+
+/** One programme-level lookup per station, shared by all its discounts. */
+function levelsResolver(
+  context: DiscountContext,
+  station: StationLike,
+  unit: string | null,
+): (programId: string) => ProgrammeLevel[] {
+  const cache = new Map<string, ProgrammeLevel[]>();
+  return (programId) => {
+    let levels = cache.get(programId);
+    if (!levels) {
+      levels = programmeLevels(
+        context.discounts,
+        station,
+        programId,
+        context.profile,
+        context.today,
+        unit,
+      );
+      cache.set(programId, levels);
+    }
+    return levels;
+  };
+}
+
 function discountExtras(
   outcome: DiscountOutcome,
   unit: string | null,
   lang: Locale,
+  levelsFor: (programId: string) => ProgrammeLevel[],
 ): Partial<StationInfo> {
+  const withLevels = (resolution: DiscountResolution): DiscountInfo => {
+    const payload = resolutionPayload(resolution, unit, lang);
+    const levels = levelsFor(resolution.programId);
+    return levels.length > 0
+      ? { ...payload, levels: levels.map((level) => levelPayload(level, unit)) }
+      : payload;
+  };
+
   const extras: Partial<StationInfo> = {};
-  if (outcome.applied) extras.discount = resolutionPayload(outcome.applied, unit, lang);
+  if (outcome.applied) extras.discount = withLevels(outcome.applied);
   if (outcome.possible.length > 0) {
     // Every priced alternative the caller could use, so a card can list the
     // remaining prices instead of hiding them behind a mode filter.
-    extras.possible_discounts = outcome.possible
-      .slice(0, 5)
-      .map((entry) => resolutionPayload(entry, unit, lang));
+    extras.possible_discounts = outcome.possible.slice(0, 5).map(withLevels);
   }
   if (outcome.scheduled.length > 0) {
     extras.scheduled_discounts = outcome.scheduled.slice(0, 2).map(
@@ -381,7 +429,7 @@ function discountExtras(
   if (outcome.catalogued.length > 0) {
     extras.catalogued_discounts = outcome.catalogued
       .slice(0, 2)
-      .map((entry) => resolutionPayload(entry, unit, lang));
+      .map((entry) => withLevels(entry));
   }
   if (outcome.locked.length > 0) {
     extras.locked_discounts = outcome.locked.slice(0, 2);
@@ -394,16 +442,21 @@ function stationEntry(
   row: SnapshotRow & { distanceKm?: number },
   unit: string | null,
 ) {
+  const station: StationLike = { brand: row.brand, name: row.name, price: row.price };
   const outcome = resolveForStation(
     context.discounts,
-    { brand: row.brand, name: row.name, price: row.price },
+    station,
     unit,
     context.profile,
     context.today,
   );
 
   return {
-    payload: stationPayload(row, unit, discountExtras(outcome, unit, context.lang)),
+    payload: stationPayload(
+      row,
+      unit,
+      discountExtras(outcome, unit, context.lang, levelsResolver(context, station, unit)),
+    ),
     effectivePrice: outcome.applied?.effectivePriceEur ?? row.price ?? Number.POSITIVE_INFINITY,
   };
 }
@@ -813,9 +866,14 @@ export async function getStationDetails(env: Env, args: StationDetailsArgs): Pro
   const station: StationDetail = {
     ...detail,
     fuels: detail.fuels.map((fuel) => {
+      const stationLike: StationLike = {
+        brand: detail.brand,
+        name: detail.name,
+        price: fuel.price,
+      };
       const outcome = resolveForStation(
         discountContext.discounts,
-        { brand: detail.brand, name: detail.name, price: fuel.price },
+        stationLike,
         fuel.unit,
         discountContext.profile,
         discountContext.today,
@@ -823,7 +881,12 @@ export async function getStationDetails(env: Env, args: StationDetailsArgs): Pro
       return {
         ...fuel,
         price_display: formatPrice(fuel.price, fuel.unit),
-        ...discountExtras(outcome, fuel.unit, discountContext.lang),
+        ...discountExtras(
+          outcome,
+          fuel.unit,
+          discountContext.lang,
+          levelsResolver(discountContext, stationLike, fuel.unit),
+        ),
       };
     }),
     maps_url:

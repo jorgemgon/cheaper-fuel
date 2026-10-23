@@ -482,6 +482,78 @@ export function resolveForStation(
   return outcome;
 }
 
+export interface ProgrammeLevel {
+  tierId: string | null;
+  label: string;
+  minServices: number;
+  valueType: Discount["valueType"];
+  /** Tier value in its own unit (cents/L, percent or EUR per fill). */
+  value: number;
+  centsPerLitre: number;
+  effectivePriceEur: number | null;
+}
+
+/**
+ * Every tier of one programme at a station, with the price it would give.
+ * Weekday schedules are not applied: this is the programme's best case per
+ * level, which is what "what if I had only two services?" needs.
+ */
+export function programmeLevels(
+  discounts: readonly Discount[],
+  station: StationLike,
+  programId: string,
+  profile: DiscountProfile,
+  today: string,
+  unit: string | null,
+): ProgrammeLevel[] {
+  if (unit !== "litro") return [];
+  const price = station.price;
+  if (price === null) return [];
+
+  const rows = discounts.filter(
+    (discount) =>
+      discount.programId === programId &&
+      discountStatus(discount, today) === "active" &&
+      matchesStation(discount, station, unit) &&
+      isQuantified(discount),
+  );
+  if (rows.length === 0) return [];
+
+  const groups = new Map<string, Discount[]>();
+  for (const row of rows) {
+    const key = row.tierId?.trim() || row.tierLabel?.trim() || "";
+    const bucket = groups.get(key) ?? [];
+    bucket.push(row);
+    groups.set(key, bucket);
+  }
+
+  return [...groups.values()]
+    .map((tierRows): ProgrammeLevel => {
+      const head = tierRows[0];
+      const cents = aggregate(
+        head.combine,
+        tierRows.map((row) => centsPerLitre(row, price, profile.fillLitres)),
+      );
+      const raw = aggregate(
+        head.combine,
+        tierRows.map((row) => row.value ?? 0),
+      );
+      const label =
+        head.tierLabel?.trim() || (head.minServices > 0 ? `${head.minServices}+ serviços` : "Base");
+
+      return {
+        tierId: head.tierId?.trim() || null,
+        label,
+        minServices: Math.max(...tierRows.map((row) => row.minServices)),
+        valueType: head.valueType,
+        value: roundTo(raw, 2),
+        centsPerLitre: roundTo(cents, 2),
+        effectivePriceEur: roundTo(Math.max(0, price - cents / 100), 4),
+      };
+    })
+    .sort((a, b) => a.minServices - b.minServices || a.label.localeCompare(b.label, "pt"));
+}
+
 export interface ProgrammeGroup {
   programId: string;
   programTitle: string;

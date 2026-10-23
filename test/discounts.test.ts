@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   groupProgrammes,
+  programmeLevels,
   resolveForStation,
   sanitizeProfile,
   type StationLike,
@@ -450,5 +451,78 @@ describe("groupProgrammes", () => {
     expect(first?.status).toBe("active");
     const second = groups.find((group) => group.programId === "p2");
     expect(second?.status).toBe("expired");
+  });
+});
+
+describe("programmeLevels", () => {
+  const rows = [
+    makeDiscount({ id: "t1-app", programId: "combo", tierId: "t1", tierLabel: "1 serviço", minServices: 1, channel: "app", value: 8 }),
+    makeDiscount({ id: "t1-coupon", programId: "combo", tierId: "t1", tierLabel: "1 serviço", minServices: 1, channel: "coupon", value: 12 }),
+    makeDiscount({ id: "t3-app", programId: "combo", tierId: "t3", tierLabel: "3+ serviços", minServices: 3, channel: "app", value: 10 }),
+    makeDiscount({ id: "t3-coupon", programId: "combo", tierId: "t3", tierLabel: "3+ serviços", minServices: 3, channel: "coupon", value: 20 }),
+  ];
+
+  it("lists every tier with its best-case discount and resulting price", () => {
+    const levels = programmeLevels(rows, galpStation, "combo", profile, TODAY, "litro");
+
+    expect(levels.map((level) => [level.label, level.minServices, level.centsPerLitre, level.effectivePriceEur])).toEqual([
+      ["1 serviço", 1, 20, 1.8],
+      ["3+ serviços", 3, 30, 1.7],
+    ]);
+  });
+
+  it("labels an unlabelled tier as Base and only uses the requested programme", () => {
+    const levels = programmeLevels(
+      [
+        makeDiscount({ id: "base", programId: "motor", tierId: null, tierLabel: null, value: 8 }),
+        makeDiscount({ id: "other", programId: "another", value: 99 }),
+      ],
+      galpStation,
+      "motor",
+      profile,
+      TODAY,
+      "litro",
+    );
+
+    expect(levels).toEqual([
+      {
+        tierId: null,
+        label: "Base",
+        minServices: 0,
+        valueType: "cents_per_litre",
+        value: 8,
+        centsPerLitre: 8,
+        effectivePriceEur: 1.92,
+      },
+    ]);
+  });
+
+  it("normalises percent and per-fill levels to cents and price", () => {
+    const percent = programmeLevels(
+      [makeDiscount({ id: "p", programId: "pct", valueType: "percent", value: 10 })],
+      galpStation,
+      "pct",
+      profile,
+      TODAY,
+      "litro",
+    );
+    const perFill = programmeLevels(
+      [makeDiscount({ id: "f", programId: "fill", valueType: "eur_per_fill", value: 2 })],
+      galpStation,
+      "fill",
+      profile,
+      TODAY,
+      "litro",
+    );
+
+    expect(percent[0]).toMatchObject({ centsPerLitre: 20, effectivePriceEur: 1.8, value: 10 });
+    expect(perFill[0]).toMatchObject({ centsPerLitre: 4, effectivePriceEur: 1.96, value: 2 });
+  });
+
+  it("has levels only for litre fuels and active programmes", () => {
+    const disabled = [makeDiscount({ id: "old", programId: "combo", validUntil: "2026-01-01" })];
+
+    expect(programmeLevels(rows, galpStation, "combo", profile, TODAY, "kg")).toEqual([]);
+    expect(programmeLevels(disabled, galpStation, "combo", profile, TODAY, "litro")).toEqual([]);
   });
 });

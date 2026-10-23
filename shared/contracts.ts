@@ -13,6 +13,20 @@ export interface DiscountScheduleInfo {
   weekday: number | null;
 }
 
+export interface DiscountLevelInfo {
+  /** Programme tier id, e.g. "combina-3", or null for a flat programme. */
+  tier: string | null;
+  label: string;
+  min_services: number;
+  value_type: "cents_per_litre" | "percent" | "eur_per_fill" | null;
+  /** Best-case tier value in its own unit (the schedule is not applied). */
+  value: number;
+  /** Same tier value normalised to cents per litre. */
+  cents_per_litre: number;
+  effective_price_eur: number | null;
+  effective_price_display: string | null;
+}
+
 export interface DiscountInfo {
   program_id: string;
   program_title: string;
@@ -31,6 +45,8 @@ export interface DiscountInfo {
   schedule_label: string;
   applies_today: boolean;
   stale: boolean;
+  /** Every level of the programme, with the price each level would give. */
+  levels?: DiscountLevelInfo[];
 }
 
 export interface ScheduledDiscountInfo {
