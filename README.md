@@ -74,7 +74,7 @@ MCP tools.
 List parameters accept either comma-separated values (`?fuels=diesel,95`) or repeated keys. Endpoints
 that return discount descriptions accept `lang=en` (default) or `lang=pt`; the dashboard asks for `pt`.
 `/api/stations` also takes `sort` (`distance`, `price` or `effective_price`) and `sort_order`
-(`asc` by default, `desc` for dearest first — the dashboard opens with `price` / `desc`).
+(`asc` by default, `desc` for dearest first — the dashboard opens with `price` / `asc`).
 Errors are `{ "error": { "code", "message", "hint?" } }` with 400 for validation, 404 for an unknown
 station, 422 for coordinates outside mainland Portugal, 502 for upstream failures and 503 when the
 discount registry is unavailable.

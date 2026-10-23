@@ -7,6 +7,7 @@ export type SortOrder = "asc" | "desc";
 export type DiscountMode = "best_case" | "guaranteed";
 
 export interface Profile {
+  version: number;
   fuels: string[];
   cards: string[];
   services: string[];
@@ -19,16 +20,19 @@ export interface Profile {
   fillLitres: number;
 }
 
+const PROFILE_VERSION = 2;
+
 const DEFAULTS: Profile = {
+  version: PROFILE_VERSION,
   fuels: ["Gasóleo simples"],
   cards: [],
   services: [],
   location: "",
   radiusKm: 15,
   limit: 5,
-  // The main page opens ordered by price, dearest first.
+  // The main page opens ordered by price, cheapest first.
   sort: "price",
-  sortOrder: "desc",
+  sortOrder: "asc",
   discountMode: "best_case",
   fillLitres: 50,
 };
@@ -36,12 +40,14 @@ const DEFAULTS: Profile = {
 const stored = readJson<Partial<Profile>>("profile", {});
 const initial: Profile = { ...DEFAULTS, ...stored };
 
-// Profiles saved before sortOrder existed keep their cards and location but
-// adopt the new default ordering.
-if (stored.sort !== undefined && stored.sortOrder === undefined) {
+// Bumping this resets the stored ordering once, so everyone lands on the
+// current default instead of an order inherited from an older build. Cards,
+// services and location are preserved.
+if ((stored.version ?? 1) < PROFILE_VERSION) {
   initial.sort = DEFAULTS.sort;
   initial.sortOrder = DEFAULTS.sortOrder;
 }
+initial.version = PROFILE_VERSION;
 
 const profile = ref<Profile>(initial);
 watch(profile, (value) => writeJson("profile", value), { deep: true });
