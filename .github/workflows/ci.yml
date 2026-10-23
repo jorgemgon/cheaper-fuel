@@ -22,6 +22,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Build dashboard
+        run: npm run web:build
+
       - name: Unit tests
         run: npm test
 

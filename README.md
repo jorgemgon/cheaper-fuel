@@ -1,12 +1,15 @@
 # cheaper-fuel
 
-A remote [MCP](https://modelcontextprotocol.io) server for fuel prices at filling stations in
-**mainland Portugal**, running on Cloudflare Workers.
+Fuel prices at filling stations in **mainland Portugal**, as a remote
+[MCP](https://modelcontextprotocol.io) server **and** an installable Vue PWA dashboard, running on
+Cloudflare Workers.
 
 | | |
 |---|---|
+| **Dashboard** | <https://cheaper-fuel.jorgon.workers.dev/> |
 | **MCP endpoint** | `https://cheaper-fuel.jorgon.workers.dev/mcp` |
-| **Landing page** | <https://cheaper-fuel.jorgon.workers.dev/> |
+| **REST API** | <https://cheaper-fuel.jorgon.workers.dev/api> |
+| **Server docs** | <https://cheaper-fuel.jorgon.workers.dev/docs> |
 | **Health** | <https://cheaper-fuel.jorgon.workers.dev/health> |
 
 Data source: [DGEG — Direção-Geral de Energia e Geologia](https://precoscombustiveis.dgeg.gov.pt/).
@@ -14,6 +17,9 @@ Data source: [DGEG — Direção-Geral de Energia e Geologia](https://precoscomb
 ## Quick start
 
 ```bash
+# Use the dashboard in a browser, or install it (it is a PWA):
+open https://cheaper-fuel.jorgon.workers.dev/
+
 # Claude Code
 claude mcp add --transport http cheaper-fuel https://cheaper-fuel.jorgon.workers.dev/mcp
 
@@ -24,6 +30,48 @@ npx @modelcontextprotocol/inspector
 
 For Codex or any other client, add a remote MCP server pointing at the `/mcp` URL. The endpoint is
 stateless Streamable HTTP and needs no authentication.
+
+## Web dashboard
+
+A Vue 3 PWA served from the same Worker (`/`), designed phone-first for use at the pump:
+
+- **Explorar** — asks for your location (one tap) or takes a concelho/postcode, then shows the nearest
+  stations on a **Leaflet map** with markers colour-coded by *effective price* after discounts,
+  synchronised with the result list.
+- **Mercado** — per-fuel min/average/median/max, spread, observed national discount and a comparison
+  chart.
+- **Histórico** — daily national averages as **Chart.js** line and bar charts (with and without discount).
+- **Descontos** — the normalised catalogue: mechanics, caps, requirements, schedule, validity and sources.
+- **Sobre** — coverage, freshness, attribution and the MCP connect command.
+
+Installable (manifest + service worker) and usable offline: the last search and previously viewed map
+tiles are cached. Location is opt-in, stored only on the device.
+
+Map tiles come from a configurable provider (`VITE_TILE_URL` / `VITE_TILE_ATTRIBUTION`, default a dark
+CARTO basemap with attribution). DGEG does not publish map tiles: its ArcGIS `PostosAbastecimento`
+service is query-only with no price fields, so the map uses our own snapshot as the data source.
+
+## REST API
+
+The dashboard is backed by a read-only JSON API that calls exactly the same service functions as the
+MCP tools.
+
+| Endpoint | Returns |
+|---|---|
+| `GET /api/meta` | fuel catalogue, version, registry date, defaults |
+| `GET /api/stations` | station search (`location`/`latitude`+`longitude`, `fuels`, `cards`, `services`, `sort`, …) |
+| `GET /api/stations/:id` | full station detail with discounts |
+| `GET /api/market` | per-fuel statistics (`fuels`, `district`, `municipality`) |
+| `GET /api/history` | daily national averages (`fuels`, `days`/`from`/`to`) |
+| `GET /api/discounts` | the standardized discount catalogue (`status`, `supplier`, `partner`, …) |
+| `GET /api/fuels` | fuel types |
+| `GET /api/locations` | concelho/locality/postcode lookup |
+
+List parameters accept either comma-separated values (`?fuels=diesel,95`) or repeated keys. Errors are
+`{ "error": { "code", "message", "hint?" } }` with 400 for validation, 404 for an unknown station,
+422 for coordinates outside mainland Portugal, 502 for upstream failures and 503 when the discount
+registry is unavailable.
+
 
 ## Why not scrape the website?
 
@@ -294,23 +342,35 @@ per-concelho or per-station history endpoint.
 ```bash
 npm install
 npm run db:migrate:local   # create + seed the local D1 discounts table
+npm run web:build          # build the dashboard into web/dist (needed by wrangler dev)
 npm run dev                # wrangler dev on http://127.0.0.1:8787
 
-node test/smoke.mjs        # 21 end-to-end checks against the local worker
-npm run typecheck
+node test/smoke.mjs        # end-to-end checks (MCP + REST + PWA shell)
+npm run typecheck          # worker + Vue app
 npm test
 npm run discounts:check
 ```
 
-`npm run smoke -- https://cheaper-fuel.jorgon.workers.dev/mcp` runs the same checks against a
+For fast UI iteration run the Vite dev server instead, which proxies the API to the worker:
+
+```bash
+# terminal 1
+npx wrangler dev --port 8787
+# terminal 2
+npm run dev:web            # http://127.0.0.1:5173
+```
+
+`node test/smoke.mjs https://cheaper-fuel.jorgon.workers.dev/mcp` runs the same checks against a
 deployment.
 
 ## Deploy
 
 ```bash
-npm run db:migrate:remote   # first and after every new discounts migration
-npx wrangler deploy
+npm run deploy   # builds the dashboard, then wrangler deploy
 ```
+
+The Worker serves the SPA from `web/dist` via Cloudflare static assets; `/api/*`, `/mcp`, `/health`
+and `/docs` are routed to the Worker (`run_worker_first`), everything else falls back to the SPA shell.
 
 Configuration lives in [`wrangler.jsonc`](wrangler.jsonc):
 
@@ -320,6 +380,8 @@ Configuration lives in [`wrangler.jsonc`](wrangler.jsonc):
 | `CACHE_TTL_SECONDS` | `86400` | Cache lifetime for every upstream call |
 | `USER_AGENT` | `cheaper-fuel-mcp/<version> (+repo)` | Identifying agent sent to DGEG |
 | `DB` (binding) | `cheaper-fuel-discounts` | D1 database holding the standardized discount objects |
+
+Dashboard-only build-time variables: `VITE_TILE_URL` and `VITE_TILE_ATTRIBUTION` override the basemap.
 
 To auto-deploy on push, connect the repository in the Cloudflare dashboard (Workers → Git
 integration) or add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets.
@@ -359,28 +421,44 @@ change without notice, and the catalogue records the source URL and retrieval da
 ## Project layout
 
 ```
+shared/
+  contracts.ts       response interfaces shared by the worker and the dashboard
 src/
-  index.ts           HTTP surface: /mcp, /, /health
-  mcp.ts             MCP server, instructions and the seven tools
+  index.ts           HTTP surface: /mcp, /api/*, /health, /docs (SPA served from assets)
+  api.ts             read-only JSON API used by the dashboard
+  service.ts         the single implementation both surfaces call
+  tool-inputs.ts     zod schemas shared by MCP and REST validation
+  mcp.ts             MCP server: instructions + the seven tools (thin wrappers)
   discounts.ts       D1 repository, profile resolution and effective pricing
-  discount-schema.ts the standardized Discount object, zod schema and derived status
+  discount-schema.ts the standardized Discount object, zod schema, derived status and schedules
   snapshot.ts        paged national snapshot, cached and memoised
   places.ts          place index and name/postal-code/coordinate resolution
   geo.ts             haversine, radius widening, concelho grouping
   dgeg.ts            cache helpers, upstream client, typed errors
   domain.ts          pure parsing, matching and statistics
-  landing.ts         HTML documentation page
+  landing.ts         HTML documentation page served at /docs
+web/
+  index.html         SPA entry
+  vite.config.ts     Vite + Vue + PWA (Workbox) + dev proxy
+  public/            generated PWA icons
+  src/
+    api.ts           typed client for /api
+    views/           Explore (map + list), Overview, History, Discounts, About
+    components/      MapPanel (Leaflet), charts (Chart.js), StationCard, ChipGroup, StatCard
+    composables/     geolocation, profile persistence, Leaflet lifecycle
+    lib/             formatting, price colour ramp, geo maths, storage
 data/
   discounts.seed.json  authoring source for the discount registry (not bundled)
 migrations/
   0001_discounts.sql   D1 schema (no status column)
-  0002_seed_discounts.sql  generated from the seed
+  0002..0006_*.sql     generated seed and follow-up migrations
 scripts/
-  build-seed-migration.mjs   seed -> migration
+  build-seed-migration.mjs     seed -> migration
   verify-discount-sources.mjs  source change detection
+  generate-icons.py            PWA icons
 test/
-  *.test.ts          unit tests (vitest)
-  smoke.mjs          end-to-end MCP client checks
+  *.test.ts          unit tests (vitest): service, api, discounts, domain
+  smoke.mjs          end-to-end checks: MCP client, REST API and PWA shell
 ```
 
 ## License
