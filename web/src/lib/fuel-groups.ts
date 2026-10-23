@@ -1,5 +1,6 @@
 import type { FuelStationList } from "@contracts";
 
+import { fuelColor } from "./fuel-colors";
 import type { StationFuelRow } from "./station-groups";
 
 export interface FuelGroup {
@@ -7,6 +8,8 @@ export interface FuelGroup {
   unit: string | null;
   stationsFound: number;
   rows: StationFuelRow[];
+  /** Identity colour shared with the fuel filter chip. */
+  color: string;
 }
 
 /** One collapsible section per selected fuel, in the order the API returned. */
@@ -16,6 +19,7 @@ export function buildFuelGroups(fuels: readonly FuelStationList[]): FuelGroup[] 
     unit: fuel.unit,
     stationsFound: fuel.stations_found,
     rows: fuel.stations.map((station) => ({ station, fuel: fuel.fuel })),
+    color: fuelColor(fuel.fuel),
   }));
 }
 

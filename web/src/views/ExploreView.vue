@@ -16,6 +16,7 @@ import StationCard from "../components/StationCard.vue";
 import { useGeolocation } from "../composables/useGeolocation";
 import { useProfile, type ResultLimit, type SortMode } from "../composables/useProfile";
 import { buildProfileOptions } from "../lib/discount-labels";
+import { fuelColor } from "../lib/fuel-colors";
 import { formatDate, formatRelativeTime } from "../lib/format";
 import { buildFuelGroups, fuelGroupCount } from "../lib/fuel-groups";
 import { GEO_CACHE_TTL_MS, isFresh } from "../lib/geo";
@@ -49,7 +50,11 @@ let lastQueryKey: string | null = null;
 const AUTO_SEARCH_DELAY_MS = 350;
 
 const fuelOptions = computed(() =>
-  (meta.value?.fuels ?? []).map((fuel) => ({ key: fuel.name, label: fuel.name })),
+  (meta.value?.fuels ?? []).map((fuel) => ({
+    key: fuel.name,
+    label: fuel.name,
+    color: fuelColor(fuel.name),
+  })),
 );
 const profileOptions = computed(() => buildProfileOptions(programmes.value));
 const cardOptions = computed(() => profileOptions.value.filter((option) => option.group === "card"));
@@ -425,7 +430,13 @@ async function runInitialSearch(): Promise<void> {
         />
 
         <template v-else-if="multipleFuels">
-          <details v-for="group in fuelGroups" :key="group.fuel" class="fuel-group" open>
+          <details
+            v-for="group in fuelGroups"
+            :key="group.fuel"
+            class="fuel-group"
+            :style="{ '--fuel-color': group.color }"
+            open
+          >
             <summary class="fuel-group-head">
               <span class="fuel-group-title">{{ group.fuel }}</span>
               <span class="tiny muted">{{ fuelGroupCount(group) }}</span>

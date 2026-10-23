@@ -279,9 +279,19 @@ p {
   font-size: 0.85rem;
 }
 
+/* Fuel identity dot on the fuel filter chips. */
+.chip-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  margin-right: 0.35rem;
+  background: var(--chip-color, currentColor);
+}
+
 .chip.is-on {
   background: var(--surface-2);
-  border-color: var(--accent);
+  border-color: var(--chip-color, var(--accent));
   color: var(--text);
 }
 
@@ -318,6 +328,7 @@ p {
 /* One collapsible section per fuel when several fuels are selected. */
 .fuel-group {
   border: 1px solid var(--border);
+  border-left: 3px solid var(--fuel-color, var(--border));
   border-radius: 12px;
   background: var(--surface-2);
   overflow: hidden;
@@ -330,6 +341,16 @@ p {
   padding: 0.7rem 0.9rem;
   cursor: pointer;
   list-style: none;
+}
+
+.fuel-group-head::before {
+  content: "";
+  align-self: center;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--fuel-color, var(--muted));
+  flex: 0 0 auto;
 }
 
 .fuel-group-head::-webkit-details-marker {
