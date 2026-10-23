@@ -9,21 +9,22 @@ import { bestPriceDisplay, remainingPriceOptions } from "../lib/price-options";
 import {
   formatTierValue,
   tierEffectivePrice,
+  tiersForDiscount,
   type ProgrammeTier,
 } from "../lib/programme-tiers";
+import { formatSchedulePt } from "../lib/schedule";
 
 const props = defineProps<{
   station: StationInfo;
   quantity: number;
   quantityUnit: QuantityUnit;
-  /** Tier ladder for programmes like COMBINA (1 / 2 / 3+ services). */
-  tiers?: ProgrammeTier[];
 }>();
 const emit = defineEmits<{ focus: [id: number] }>();
 
 const bestPrice = computed(() => bestPriceDisplay(props.station));
 const priceOptions = computed(() => remainingPriceOptions(props.station));
 const estimate = computed(() => fillEstimate(props.station, props.quantity, props.quantityUnit));
+const tiers = computed(() => tiersForDiscount(props.station.discount));
 
 /** The ladder level the applied resolution belongs to. */
 function isActiveTier(tier: ProgrammeTier): boolean {
@@ -33,12 +34,12 @@ function isActiveTier(tier: ProgrammeTier): boolean {
   const label = discount.label?.trim();
   if (label && tier.label === label) return true;
   // A flat programme has a single level, which is the applied one by default.
-  return (props.tiers?.length ?? 0) === 1;
+  return tiers.value.length === 1;
 }
 
 /** Each level with the price it would give and the spend for the quantity. */
 const tierRows = computed(() =>
-  (props.tiers ?? []).map((tier) => {
+  tiers.value.map((tier) => {
     const referenceLitres = props.quantityUnit === "litres" ? props.quantity : 50;
     const price = tierEffectivePrice(props.station.price_eur, tier, referenceLitres);
     return {
@@ -112,7 +113,7 @@ const tierRows = computed(() =>
           <template v-if="props.station.discount.label"> · {{ props.station.discount.label }}</template>
         </span>
         <span class="badge">{{ formatCents(props.station.discount.applied_cents) }}</span>
-        <span class="badge">{{ props.station.discount.schedule_label }}</span>
+        <span class="badge">{{ formatSchedulePt(props.station.discount.schedule) }}</span>
         <span v-if="props.station.discount.stale" class="badge badge-warn">verificar</span>
       </div>
       <div v-if="tierRows.length > 0" class="tier-ladder">
@@ -140,7 +141,7 @@ const tierRows = computed(() =>
 
     <div v-if="props.station.scheduled_discounts?.length" class="notice notice-warn tiny">
       <div v-for="offer in props.station.scheduled_discounts" :key="offer.program_id">
-        <strong>{{ offer.program_title }}</strong> — {{ offer.schedule_label }}<template v-if="offer.next_date">,
+        <strong>{{ offer.program_title }}</strong> — {{ formatSchedulePt(offer.schedule) }}<template v-if="offer.next_date">,
         próxima a {{ offer.next_date }}</template>.
         {{ offer.description }}
       </div>

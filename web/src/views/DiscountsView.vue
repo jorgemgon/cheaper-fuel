@@ -6,9 +6,16 @@ import { useRoute } from "vue-router";
 import { api, ApiError } from "../api";
 import ChipGroup from "../components/ChipGroup.vue";
 import EmptyState from "../components/EmptyState.vue";
-import { labelForRequirement } from "../lib/discount-labels";
+import {
+  channelLabel,
+  combineLabel,
+  confidenceLabel,
+  labelForRequirement,
+  programmeKindLabel,
+} from "../lib/discount-labels";
 import { sourceLinks } from "../lib/sources";
 import { formatCents, formatDate, formatMoney } from "../lib/format";
+import { formatSchedulePt } from "../lib/schedule";
 
 const route = useRoute();
 const programmes = ref<DiscountProgrammeInfo[]>([]);
@@ -37,6 +44,10 @@ const visible = computed(() =>
 
 function toggleSupplier(key: string) {
   supplier.value = supplier.value === key ? null : key;
+}
+
+function clearSupplier(): void {
+  supplier.value = null;
 }
 
 function statusClass(value: string): string {
@@ -97,7 +108,10 @@ onMounted(() => {
       </div>
 
       <div class="field">
-        <label>Fornecedor</label>
+        <div class="field-head">
+          <label>Fornecedor</label>
+          <button v-if="supplier" type="button" class="clear-btn" @click="clearSupplier">Limpar</button>
+        </div>
         <ChipGroup :options="supplierOptions" :model-value="supplier ? [supplier] : []" @toggle="toggleSupplier" />
       </div>
 
@@ -132,12 +146,12 @@ onMounted(() => {
             <p class="tiny muted" style="margin: 0.2rem 0 0">
               {{ programme.supplier }}
               <template v-if="programme.partners.length"> × {{ programme.partners.join(", ") }}</template>
-              · {{ programme.kind }}
+              · {{ programmeKindLabel(programme.kind) }}
             </p>
           </div>
           <div class="row" style="gap: 0.3rem; justify-content: flex-end">
             <span :class="statusClass(programme.status)">{{ statusLabel(programme.status) }}</span>
-            <span class="badge">{{ programme.confidence }}</span>
+            <span class="badge">{{ confidenceLabel(programme.confidence) }}</span>
             <span v-if="programme.stale" class="badge badge-warn">proveniência antiga</span>
             <span v-if="!programme.quantified" class="badge">não quantificado</span>
           </div>
@@ -150,8 +164,8 @@ onMounted(() => {
           </div>
           <p class="small" style="margin: 0.35rem 0">{{ discount.description }}</p>
           <div class="row tiny muted" style="gap: 0.5rem">
-            <span>Mecânica: {{ discount.channel }} / {{ discount.combine }}</span>
-            <span v-if="discount.schedule.kind !== 'always'">Quando: todos os dias</span>
+            <span>Mecânica: {{ channelLabel(discount.channel) }} / {{ combineLabel(discount.combine) }}</span>
+            <span>Quando: {{ formatSchedulePt(discount.schedule) }}</span>
             <span v-if="discount.caps.litresPerFill">Máx. {{ discount.caps.litresPerFill }} L por abastecimento</span>
             <span v-if="discount.caps.litresPerYear">Máx. {{ discount.caps.litresPerYear }} L por ano</span>
             <span v-if="discount.valid_from || discount.valid_until">

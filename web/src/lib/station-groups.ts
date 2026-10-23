@@ -39,3 +39,8 @@ export function groupRowsByStation(rows: readonly StationFuelRow[]): StationGrou
 
   return [...byId.values()];
 }
+
+/** Prices in different units (€/litro, €/kg, €/m³) cannot share one ramp. */
+export function hasMixedUnits(rows: readonly StationFuelRow[]): boolean {
+  return new Set(rows.map((row) => row.station.unit)).size > 1;
+}

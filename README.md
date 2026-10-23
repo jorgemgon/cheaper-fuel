@@ -38,7 +38,8 @@ A Vue 3 PWA served from the same Worker (`/`), designed phone-first for use at t
 - **Explorar** — asks for your location (one tap) or takes a concelho/postcode, then shows the nearest
   stations on a **Leaflet map** with markers colour-coded by *effective price* after discounts,
   synchronised with the result list. It opens with the lowest price first and keeps that order when
-  you use your location. The radius opens at 5 km and has a `Repor` action back to that default.
+  you use your location. The radius opens at 5 km and has a `Repor` action back to that default; the
+  fuel filter opens with Gasóleo simples + Gasolina simples 95, the same pair the MCP defaults to.
   Every station inside the chosen radius is listed by default;
   `Resultados` can cap the list (10/20/50/100) for a slow connection, and the header says
   `20 de 84 postos` whenever a cap truncates what the radius actually holds. Every card/app and
@@ -58,7 +59,9 @@ A Vue 3 PWA served from the same Worker (`/`), designed phone-first for use at t
   carousel on phones — each with its own count and `20 de 84` when the results limit truncates it.
   Fuel filter chips and those section headers share an identity colour —
   diesel yellow, petrol lime green, GPL blue, specials in the same family — while the map keeps its
-  cheap → dear price colours. The map carries a search pin: using your location drops it on your
+  cheap → dear price colours. When the selected fuels span different units (€/litro, €/kg, €/m³) the
+  markers switch to each fuel's identity colour with a fuel legend, because those prices cannot share
+  one ramp. The map carries a search pin: using your location drops it on your
   position, and clicking the map or dragging the pin re-searches from that point. The last search — a
   place name, the geolocation position or a picked point — is restored on reload, so a refresh keeps
   the same list on screen. The shell adapts to three sizes: wide desktops pin a filter rail and a tall
@@ -122,7 +125,7 @@ instead of parsing HTML:
 
 ## Tools
 
-Six tools, deliberately few, so an agent does not wander between lookups.
+Seven tools, deliberately few, so an agent does not wander between lookups.
 
 | Tool | Use it for |
 |---|---|
@@ -264,7 +267,7 @@ Some deals only run on particular days. `schedule` expresses that:
 ```
 
 An offer that is not valid today is **never applied** to the effective price. It is returned under
-`scheduled_discounts` with its `schedule_label` and `next_date`, so an agent can answer "that one runs
+`scheduled_discounts` with its structured `schedule`, `schedule_label` and `next_date`, so an agent can answer "that one runs
 on the first Wednesday — next on 2026-11-04" instead of silently showing a price that isn't available.
 
 **What could actually be verified:**
@@ -474,6 +477,9 @@ change without notice, and the catalogue records the source URL and retrieval da
   tracking would need our own D1 + cron snapshots.
 - **No route/corridor search** ("cheapest on the way to Porto").
 - **No island coverage** — upstream limitation.
+- **All fuels is a big response**: selecting every fuel at once can return a few hundred KB and
+  hundreds of cards; `Resultados` caps it, and offscreen fuel sections use `content-visibility` so the
+  page stays responsive.
 - **Free-plan CPU**: the cold parse of the daily snapshot is the heaviest request; a Workers Paid plan
   gives comfortable headroom.
 

@@ -1,11 +1,9 @@
 import type {
   DiscountsResult,
   FindStationsResult,
-  LocationsResult,
   MarketOverviewResult,
   MetaResult,
   PriceHistoryResult,
-  StationDetailsResult,
 } from "@contracts";
 
 export class ApiError extends Error {
@@ -122,13 +120,6 @@ export interface StationQuery {
   fill_litres?: number;
 }
 
-export interface DiscountProfileQuery {
-  cards?: string[];
-  services?: string[];
-  discount_mode?: "best_case" | "guaranteed";
-  fill_litres?: number;
-}
-
 export const api = {
   meta(): Promise<MetaResult> {
     return request<MetaResult>("/api/meta");
@@ -137,10 +128,6 @@ export const api = {
   stations(query: StationQuery): Promise<FindStationsResult> {
     // The dashboard UI is pt-PT, so ask for Portuguese discount descriptions.
     return request<FindStationsResult>("/api/stations", { ...query, lang: "pt" });
-  },
-
-  station(stationId: number, profile: DiscountProfileQuery = {}): Promise<StationDetailsResult> {
-    return request<StationDetailsResult>(`/api/stations/${stationId}`, { ...profile, lang: "pt" });
   },
 
   market(params: { fuels?: string[]; district?: string; municipality?: string }): Promise<MarketOverviewResult> {
@@ -161,9 +148,5 @@ export const api = {
     } = {},
   ): Promise<DiscountsResult> {
     return request<DiscountsResult>("/api/discounts", { ...params, lang: "pt" });
-  },
-
-  locations(params: { query?: string; district?: string; limit?: number }): Promise<LocationsResult> {
-    return request<LocationsResult>("/api/locations", { ...params });
   },
 };

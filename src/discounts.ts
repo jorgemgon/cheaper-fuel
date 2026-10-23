@@ -132,6 +132,7 @@ export interface ScheduledOffer {
   programId: string;
   programTitle: string;
   description: { en: string; pt: string };
+  schedule: DiscountSchedule;
   scheduleLabel: string;
   nextDate: string | null;
   confidence: DiscountConfidence;
@@ -450,6 +451,7 @@ export function resolveForStation(
             programId: head.programId,
             programTitle: head.programTitle,
             description: head.description,
+            schedule: head.schedule,
             scheduleLabel: describeSchedule(head.schedule),
             nextDate: nextScheduleDate(head.schedule, today),
             confidence: worstConfidence(components),

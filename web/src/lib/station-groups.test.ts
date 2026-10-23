@@ -1,7 +1,7 @@
 import type { StationInfo } from "@contracts";
 import { describe, expect, it } from "vitest";
 
-import { groupRowsByStation, markerPrice } from "./station-groups";
+import { groupRowsByStation, hasMixedUnits, markerPrice } from "./station-groups";
 
 function station(id: number, price: number | null, effective: number | null = null): StationInfo {
   return {
@@ -91,5 +91,17 @@ describe("groupRowsByStation", () => {
     ]);
 
     expect(markerPrice(groups[0].station)).toBe(2.05);
+  });
+});
+
+describe("hasMixedUnits", () => {
+  it("detects when prices cannot share one ramp", () => {
+    const diesel = { station: station(1, 1.9), fuel: "Gasóleo simples" };
+    const petrol = { station: station(2, 2.0), fuel: "Gasolina simples 95" };
+    const gnc = { station: { ...station(3, 0.9), unit: "kg" }, fuel: "GNC" };
+
+    expect(hasMixedUnits([diesel, petrol])).toBe(false);
+    expect(hasMixedUnits([diesel, gnc])).toBe(true);
+    expect(hasMixedUnits([])).toBe(false);
   });
 });

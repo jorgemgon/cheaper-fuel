@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { allProfileKeys, buildProfileOptions, type ProfileOption } from "./discount-labels";
+import {
+  allProfileKeys,
+  buildProfileOptions,
+  channelLabel,
+  combineLabel,
+  confidenceLabel,
+  programmeKindLabel,
+  type ProfileOption,
+} from "./discount-labels";
 
 const OPTIONS: ProfileOption[] = [
   { key: "continente_card", label: "Cartão Continente", group: "card" },
@@ -28,5 +36,18 @@ describe("allProfileKeys", () => {
     expect(all.cards).toContain("continente_card");
     expect(all.services).toContain("galp_energy");
     expect(all.cards.length + all.services.length).toBeGreaterThan(5);
+  });
+});
+
+describe("catalogue labels", () => {
+  it("translates programme kinds, confidence, channels and combines", () => {
+    expect(programmeKindLabel("loyalty_tier")).toBe("Fidelização");
+    expect(programmeKindLabel("card_partner")).toBe("Cartão parceiro");
+    expect(confidenceLabel("high")).toBe("Confiança alta");
+    expect(confidenceLabel("medium")).toBe("Confiança média");
+    expect(channelLabel("coupon")).toBe("Cupão");
+    expect(channelLabel("instant")).toBe("Desconto imediato");
+    expect(combineLabel("sum")).toBe("Soma");
+    expect(combineLabel("max")).toBe("Máximo");
   });
 });

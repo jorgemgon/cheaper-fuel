@@ -1,18 +1,16 @@
 <script setup lang="ts">
 import type { LayoutMode } from "../composables/useLayoutMode";
 import type { QuantityUnit } from "../composables/useProfile";
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 
 import { resolveActiveFuel, stepFuelIndex } from "../lib/fuel-carousel";
 import { fuelGroupCount, type FuelGroup } from "../lib/fuel-groups";
-import { tiersForDiscount, type ProgrammeTier } from "../lib/programme-tiers";
 import StationCard from "./StationCard.vue";
 
 const props = defineProps<{
   groups: readonly FuelGroup[];
   quantity: number;
   quantityUnit: QuantityUnit;
-  tiers: ReadonlyMap<string, ProgrammeTier[]>;
   mode: LayoutMode;
 }>();
 
@@ -26,6 +24,7 @@ const activeIndex = computed(() =>
   Math.max(0, props.groups.findIndex((group) => group.fuel === activeGroup.value?.fuel)),
 );
 const showTabs = computed(() => isMobile.value && props.groups.length > 1);
+const tablist = ref<HTMLElement | null>(null);
 
 watch(
   fuelNames,
@@ -39,10 +38,20 @@ function selectFuel(fuel: string): void {
   activeFuel.value = fuel;
 }
 
+async function focusActiveTab(): Promise<void> {
+  await nextTick();
+  tablist.value?.querySelector<HTMLButtonElement>('[aria-selected="true"]')?.focus();
+}
+
+function selectIndex(index: number): void {
+  const group = props.groups[index];
+  if (!group) return;
+  activeFuel.value = group.fuel;
+  void focusActiveTab();
+}
+
 function step(delta: number): void {
-  const next = stepFuelIndex(props.groups.length, activeIndex.value, delta);
-  const group = props.groups[next];
-  if (group) activeFuel.value = group.fuel;
+  selectIndex(stepFuelIndex(props.groups.length, activeIndex.value, delta));
 }
 
 function onTabKeydown(event: KeyboardEvent): void {
@@ -52,6 +61,12 @@ function onTabKeydown(event: KeyboardEvent): void {
   } else if (event.key === "ArrowLeft") {
     event.preventDefault();
     step(-1);
+  } else if (event.key === "Home") {
+    event.preventDefault();
+    selectIndex(0);
+  } else if (event.key === "End") {
+    event.preventDefault();
+    selectIndex(props.groups.length - 1);
   }
 }
 
@@ -98,7 +113,6 @@ function onTouchEnd(event: TouchEvent): void {
           :station="row.station"
           :quantity="props.quantity"
           :quantity-unit="props.quantityUnit"
-          :tiers="tiersForDiscount(props.tiers, row.station.discount)"
           @focus="() => undefined"
         />
       </div>
@@ -113,7 +127,6 @@ function onTouchEnd(event: TouchEvent): void {
       :station="row.station"
       :quantity="props.quantity"
       :quantity-unit="props.quantityUnit"
-      :tiers="tiersForDiscount(props.tiers, row.station.discount)"
       @focus="() => undefined"
     />
   </div>
@@ -121,14 +134,15 @@ function onTouchEnd(event: TouchEvent): void {
   <!-- Mobile with several fuels: tabs + a one-fuel pager. -->
   <div v-else class="fuel-carousel">
     <div
+      ref="tablist"
       class="fuel-tabs"
       role="tablist"
       aria-label="Combustíveis"
-      tabindex="0"
       @keydown="onTabKeydown"
     >
       <button
-        v-for="group in props.groups"
+        v-for="(group, index) in props.groups"
+        :id="`fuel-tab-${index}`"
         :key="group.fuel"
         type="button"
         role="tab"
@@ -136,6 +150,8 @@ function onTouchEnd(event: TouchEvent): void {
         :class="{ 'is-on': group.fuel === activeGroup?.fuel }"
         :style="{ '--fuel-color': group.color }"
         :aria-selected="group.fuel === activeGroup?.fuel"
+        aria-controls="fuel-panel"
+        :tabindex="group.fuel === activeGroup?.fuel ? 0 : -1"
         @click="selectFuel(group.fuel)"
       >
         <span class="fuel-tab-dot" aria-hidden="true" />
@@ -145,9 +161,10 @@ function onTouchEnd(event: TouchEvent): void {
     </div>
 
     <section
+      id="fuel-panel"
       class="fuel-pager"
       role="tabpanel"
-      :aria-label="activeGroup?.fuel ?? ''"
+      :aria-labelledby="`fuel-tab-${activeIndex}`"
       @touchstart.passive="onTouchStart"
       @touchend="onTouchEnd"
     >
@@ -166,7 +183,6 @@ function onTouchEnd(event: TouchEvent): void {
             :station="row.station"
             :quantity="props.quantity"
             :quantity-unit="props.quantityUnit"
-            :tiers="tiersForDiscount(props.tiers, row.station.discount)"
             @focus="() => undefined"
           />
         </div>

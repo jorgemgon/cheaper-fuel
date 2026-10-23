@@ -45,7 +45,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="app-shell">
     <header class="app-header">
-      <RouterLink to="/" class="brand"><span class="brand-dot" /> cheaper-fuel</RouterLink>
+      <RouterLink to="/" class="brand"><span class="brand-dot" /><span class="brand-name">cheaper-fuel</span></RouterLink>
       <nav class="nav" aria-label="Navegação principal">
         <RouterLink to="/">Explorar</RouterLink>
         <RouterLink to="/overview">Mercado</RouterLink>

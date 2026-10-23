@@ -53,6 +53,7 @@ export interface ScheduledDiscountInfo {
   program_id: string;
   program_title: string;
   description: string;
+  schedule: DiscountScheduleInfo;
   schedule_label: string;
   next_date: string | null;
   confidence: "high" | "medium" | "low";

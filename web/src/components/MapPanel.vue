@@ -3,10 +3,12 @@ import type { StationInfo } from "@contracts";
 import { computed, onMounted, ref, watch } from "vue";
 
 import { useLeafletMap, type MapPoint } from "../composables/useLeafletMap";
+import { fuelColor } from "../lib/fuel-colors";
 import { formatCents, formatPrice, formatRelativeTime } from "../lib/format";
 import { buildPriceRamp } from "../lib/price-ramp";
 import {
   groupRowsByStation,
+  hasMixedUnits,
   markerPrice,
   type StationFuelRow,
   type StationGroup,
@@ -26,8 +28,26 @@ const { init, setStations, setPin, invalidate, tileFailed } = useLeafletMap(cont
 });
 
 const groups = computed(() => groupRowsByStation(props.rows));
+const mixedUnits = computed(() => hasMixedUnits(props.rows));
 
 const ramp = computed(() => buildPriceRamp(groups.value.map((group) => markerPrice(group.station))));
+
+/** In mixed-unit mode the ramp is not comparable, so use fuel colours. */
+const fuelLegend = computed(() => {
+  const seen = new Map<string, string>();
+  for (const group of groups.value) {
+    for (const entry of group.fuels) {
+      if (!seen.has(entry.fuel)) seen.set(entry.fuel, fuelColor(entry.fuel));
+    }
+  }
+  return [...seen].map(([label, color]) => ({ label, color }));
+});
+
+function markerColor(group: StationGroup): string {
+  if (!mixedUnits.value) return ramp.value.colorFor(markerPrice(group.station));
+  const entry = group.fuels.find((item) => item.station === group.station) ?? group.fuels[0];
+  return entry ? fuelColor(entry.fuel) : "#9aa7b4";
+}
 
 function escapeHtml(value: string): string {
   return value
@@ -75,7 +95,7 @@ function sync(fit = true): void {
     id: group.station.id,
     latitude: group.station.coordinates.latitude,
     longitude: group.station.coordinates.longitude,
-    color: ramp.value.colorFor(markerPrice(group.station)),
+    color: markerColor(group),
     popupHtml: popupHtml(group),
   }));
   setStations(points, fit);
@@ -116,7 +136,13 @@ watch(
 
     <p class="map-hint tiny">Clica no mapa ou arrasta o pino para escolher o local.</p>
 
-    <div v-if="ramp.legend.length > 0" class="legend">
+    <div v-if="mixedUnits && fuelLegend.length > 0" class="legend">
+      <span v-for="entry in fuelLegend" :key="entry.label" class="row" style="gap: 0.25rem">
+        <swatch :style="{ background: entry.color }" />
+        {{ entry.label }}
+      </span>
+    </div>
+    <div v-else-if="ramp.legend.length > 0" class="legend">
       <span v-for="entry in ramp.legend" :key="entry.label" class="row" style="gap: 0.25rem">
         <swatch :style="{ background: entry.color }" />
         {{ entry.label }}

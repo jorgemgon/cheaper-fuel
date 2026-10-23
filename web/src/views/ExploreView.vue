@@ -22,7 +22,6 @@ import { fuelColor } from "../lib/fuel-colors";
 import { formatDate, formatRelativeTime } from "../lib/format";
 import { buildFuelGroups } from "../lib/fuel-groups";
 import { GEO_CACHE_TTL_MS, isFresh } from "../lib/geo";
-import { buildTierLadders } from "../lib/programme-tiers";
 import { clearSearchContext, readSearchContext, saveSearchContext } from "../lib/search-context";
 import { readJson, writeJson } from "../lib/storage";
 
@@ -105,10 +104,6 @@ const limitNotice = computed(() =>
     ? "Todos os postos dentro do raio estão listados."
     : `Limite de ${profile.value.limit} por combustível — muda em "Resultados" para veres o resto.`,
 );
-
-// Tier ladders (COMBINA 1/2/3+ services, Repsol base/electricity/gas) come
-// from the catalogue; cards fall back to the applied level if it is missing.
-const programmeTiers = computed(() => buildTierLadders(programmes.value));
 
 // Active-filter summary for the small-desktop and mobile drawer.
 const filterSummary = computed(() =>
@@ -493,7 +488,6 @@ async function runInitialSearch(): Promise<void> {
             :groups="visibleFuelGroups"
             :quantity="profile.quantity"
             :quantity-unit="profile.quantityUnit"
-            :tiers="programmeTiers"
             :mode="layoutMode"
           />
 

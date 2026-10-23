@@ -59,7 +59,7 @@ button {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.7rem 1rem;
+  padding: calc(0.7rem + env(safe-area-inset-top, 0px)) 1rem 0.7rem;
   background: rgba(11, 15, 20, 0.92);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
@@ -112,7 +112,7 @@ button {
   width: 100%;
   max-width: 78rem;
   margin: 0 auto;
-  padding: 1rem 1rem 4rem;
+  padding: 1rem 1rem calc(4rem + env(safe-area-inset-bottom, 0px));
 }
 
 .app-footer {
@@ -415,6 +415,9 @@ p {
   flex-direction: column;
   gap: 0.6rem;
   padding: 0 0.6rem 0.6rem;
+  /* A 13-fuel search can hold hundreds of cards; defer offscreen sections. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
 }
 
 .notice {
@@ -682,8 +685,10 @@ p {
   padding: 0.4rem 0.55rem;
   font-size: 0.72rem;
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   align-items: center;
+  max-width: min(90%, 24rem);
 }
 
 .legend swatch {
@@ -788,14 +793,24 @@ table.data th {
 
 @media (min-width: 900px) {
   .app-main {
-    padding: 1.25rem 1.5rem 4rem;
+    padding: 1.25rem 1.5rem calc(4rem + env(safe-area-inset-bottom, 0px));
   }
 }
 
 /* ---- Explore three-mode layout ------------------------------------------ */
 
 :root {
-  --sticky-top: 4.2rem;
+  --sticky-top: calc(4.2rem + env(safe-area-inset-top, 0px));
+}
+
+@media (max-width: 420px) {
+  .brand-name {
+    display: none;
+  }
+
+  .brand {
+    gap: 0;
+  }
 }
 
 .app-main--wide {

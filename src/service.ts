@@ -419,6 +419,7 @@ function discountExtras(
         program_id: entry.programId,
         program_title: entry.programTitle,
         description: entry.description[lang],
+        schedule: entry.schedule,
         schedule_label: entry.scheduleLabel,
         next_date: entry.nextDate,
         confidence: entry.confidence,

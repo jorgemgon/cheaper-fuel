@@ -1,4 +1,45 @@
-import type { DiscountProgrammeInfo } from "@contracts";
+import type { DiscountEntryInfo, DiscountProgrammeInfo } from "@contracts";
+
+const KIND_LABELS: Record<DiscountProgrammeInfo["kind"], string> = {
+  loyalty_tier: "Fidelização",
+  card_partner: "Cartão parceiro",
+  campaign: "Campanha",
+  app: "App",
+};
+
+const CONFIDENCE_LABELS: Record<DiscountProgrammeInfo["confidence"], string> = {
+  high: "Confiança alta",
+  medium: "Confiança média",
+  low: "Confiança baixa",
+};
+
+const CHANNEL_LABELS: Record<DiscountEntryInfo["channel"], string> = {
+  app: "App",
+  coupon: "Cupão",
+  instant: "Desconto imediato",
+  cashback: "Cashback",
+};
+
+const COMBINE_LABELS: Record<DiscountEntryInfo["combine"], string> = {
+  sum: "Soma",
+  max: "Máximo",
+};
+
+export function programmeKindLabel(kind: DiscountProgrammeInfo["kind"]): string {
+  return KIND_LABELS[kind];
+}
+
+export function confidenceLabel(confidence: DiscountProgrammeInfo["confidence"]): string {
+  return CONFIDENCE_LABELS[confidence];
+}
+
+export function channelLabel(channel: DiscountEntryInfo["channel"]): string {
+  return CHANNEL_LABELS[channel];
+}
+
+export function combineLabel(combine: DiscountEntryInfo["combine"]): string {
+  return COMBINE_LABELS[combine];
+}
 
 const LABELS: Record<string, string> = {
   continente_card: "Cartão Continente",
