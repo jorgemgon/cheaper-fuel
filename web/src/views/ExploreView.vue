@@ -13,13 +13,10 @@ import EmptyState from "../components/EmptyState.vue";
 import ExploreFilters from "../components/ExploreFilters.vue";
 import FuelResults from "../components/FuelResults.vue";
 import MapPanel from "../components/MapPanel.vue";
-import StationCard from "../components/StationCard.vue";
-import { useFavorites } from "../composables/useFavorites";
 import { useGeolocation } from "../composables/useGeolocation";
 import { useLayoutMode } from "../composables/useLayoutMode";
 import { useProfile } from "../composables/useProfile";
 import { allProfileKeys, buildProfileOptions } from "../lib/discount-labels";
-import { favoriteFromDetail } from "../lib/favorites";
 import { describeFilters } from "../lib/filter-summary";
 import { fuelColor } from "../lib/fuel-colors";
 import { formatDate, formatRelativeTime } from "../lib/format";
@@ -54,17 +51,6 @@ let searchSequence = 0;
 let lastQueryKey: string | null = null;
 
 const AUTO_SEARCH_DELAY_MS = 350;
-const FAVORITES_REFRESH_MS = 60_000;
-
-const { favorites, hasFavorites, refresh: refreshFavorite } = useFavorites();
-/** Favourites are the default view whenever this device has any. */
-const activeTab = ref<"favorites" | "search">(hasFavorites.value ? "favorites" : "search");
-const favoritesLoading = ref(false);
-let lastFavoritesRefresh = 0;
-
-watch(hasFavorites, (has) => {
-  if (!has && activeTab.value === "favorites") activeTab.value = "search";
-});
 
 const fuelOptions = computed(() =>
   (meta.value?.fuels ?? []).map((fuel) => ({
@@ -84,12 +70,6 @@ const fuels = computed(() => result.value?.result.fuels ?? []);
 // per fuel, so the list key is station + fuel.
 const fuelGroups = computed(() => buildFuelGroups(fuels.value));
 const stationRows = computed(() => fuelGroups.value.flatMap((group) => group.rows));
-const favoriteRows = computed(() =>
-  favorites.value.map((favorite) => ({ station: favorite.station, fuel: favorite.fuel })),
-);
-const activeRows = computed(() =>
-  activeTab.value === "favorites" ? favoriteRows.value : stationRows.value,
-);
 const stations = computed<StationInfo[]>(() => stationRows.value.map((row) => row.station));
 const multipleFuels = computed(() => fuels.value.length > 1);
 // An empty fuel filter means "every fuel", not "no results".
@@ -246,52 +226,9 @@ function hasSearchContext(): boolean {
 
 /** A map click or a dropped pin: search from that point instead of a name. */
 function pickPoint(point: { latitude: number; longitude: number }): void {
-  activeTab.value = "search";
   setCoords(point);
   searchedFrom.value = "picked";
   scheduleSearch();
-}
-
-/** Refresh saved stations in small parallel batches; keep snapshots on failure. */
-async function refreshFavorites(force = false): Promise<void> {
-  if (!hasFavorites.value) return;
-  if (!force && Date.now() - lastFavoritesRefresh < FAVORITES_REFRESH_MS) return;
-
-  favoritesLoading.value = true;
-  const queue = [...favorites.value];
-  const profileQuery = {
-    cards: profile.value.cards,
-    services: profile.value.services,
-  };
-
-  const workers = Array.from({ length: Math.min(4, queue.length) }, async () => {
-    while (queue.length > 0) {
-      const favorite = queue.shift();
-      if (!favorite) return;
-      try {
-        const payload = await api.station(favorite.station.id, profileQuery);
-        const detail = payload.result.station;
-        if (!detail) continue;
-        const updated = favoriteFromDetail(detail, favorite.fuel);
-        if (updated) refreshFavorite(updated.station, updated.fuel);
-      } catch {
-        // Offline or station removed: the locally saved snapshot still works.
-      }
-    }
-  });
-
-  await Promise.all(workers);
-  lastFavoritesRefresh = Date.now();
-  favoritesLoading.value = false;
-}
-
-function showFavorites(): void {
-  activeTab.value = "favorites";
-  void refreshFavorites();
-}
-
-function showSearch(): void {
-  activeTab.value = "search";
 }
 
 function cancelScheduledSearch(): void {
@@ -343,7 +280,6 @@ async function useMyLocation(): Promise<void> {
   }
   writeJson("geo-consent", "granted");
   writeJson("geo-position", { ...coords, at: Date.now() });
-  activeTab.value = "search";
   searchedFrom.value = "geo";
   // Geolocation changes where to search, not how to order: the default stays
   // cheapest first unless the user picked another order.
@@ -351,7 +287,6 @@ async function useMyLocation(): Promise<void> {
 }
 
 async function searchByPlace(): Promise<void> {
-  activeTab.value = "search";
   searchedFrom.value = "place";
   await search();
 }
@@ -378,9 +313,6 @@ onMounted(async () => {
   } catch {
     // Offline first load: the controls still work with the persisted profile.
   }
-
-  // Saved stations are the default view; refresh them with the seeded profile.
-  void refreshFavorites();
 
   await runInitialSearch();
   // Only after the first search may filter changes trigger their own requests.
@@ -497,37 +429,8 @@ async function runInitialSearch(): Promise<void> {
       Registo de descontos indisponível — os preços base continuam corretos.
     </p>
 
-    <div v-if="hasFavorites" class="tabs explore-tabs" role="tablist" aria-label="Vista de postos">
-      <button
-        type="button"
-        role="tab"
-        class="chip"
-        :class="{ 'is-on': activeTab === 'favorites' }"
-        :aria-selected="activeTab === 'favorites'"
-        @click="showFavorites"
-      >
-        ★ Favoritos <span class="explore-tab-count">{{ favorites.length }}</span>
-      </button>
-      <button
-        type="button"
-        role="tab"
-        class="chip"
-        :class="{ 'is-on': activeTab === 'search' }"
-        :aria-selected="activeTab === 'search'"
-        @click="showSearch"
-      >
-        Perto de ti
-      </button>
-    </div>
-
-    <div
-      class="explore-layout"
-      :class="[
-        `explore-layout--${layoutMode}`,
-        { 'explore-layout--favorites': activeTab === 'favorites' },
-      ]"
-    >
-      <aside v-if="activeTab === 'search' && layoutMode === 'big'" class="explore-filters card">
+    <div class="explore-layout" :class="`explore-layout--${layoutMode}`">
+      <aside v-if="layoutMode === 'big'" class="explore-filters card">
         <ExploreFilters
           :fuel-options="fuelOptions"
           :card-options="cardOptions"
@@ -535,7 +438,7 @@ async function runInitialSearch(): Promise<void> {
         />
       </aside>
 
-      <details v-else-if="activeTab === 'search'" class="explore-filters-drawer card">
+      <details v-else class="explore-filters-drawer card">
         <summary class="explore-filters-summary">
           <span class="explore-filters-title">Filtros</span>
           <span class="tiny muted">{{ filterSummary }}</span>
@@ -547,89 +450,56 @@ async function runInitialSearch(): Promise<void> {
         />
       </details>
 
-      <div
-        v-if="activeRows.length > 0 || (activeTab === 'search' && layoutMode !== 'mobile')"
-        class="explore-map"
-      >
-        <MapPanel
-          v-if="activeRows.length > 0"
-          :rows="activeRows"
-          :pin="activeTab === 'search' ? mapPin : null"
-          @pick="pickPoint"
-        />
+      <div v-if="result || layoutMode !== 'mobile'" class="explore-map">
+        <MapPanel v-if="result" :rows="stationRows" :pin="mapPin" @pick="pickPoint" />
         <div v-else class="map-placeholder card">
           <p class="muted small">O mapa aparece depois da primeira pesquisa.</p>
         </div>
       </div>
 
       <div class="explore-results stack">
-        <template v-if="activeTab === 'favorites'">
+        <div v-if="loading && !result" class="grid-cards">
+          <div v-for="index in 4" :key="index" class="skeleton" />
+        </div>
+
+        <template v-else-if="result">
           <div class="row" style="justify-content: space-between">
-            <h2>
-              {{ favorites.length }}
-              {{ favorites.length === 1 ? "posto favorito" : "postos favoritos" }}
-            </h2>
-            <span v-if="favoritesLoading" class="badge">a atualizar…</span>
-          </div>
-          <p class="tiny muted">Guardados neste dispositivo. Toca na estrela para remover.</p>
-          <div class="stack">
-            <StationCard
-              v-for="favorite in favorites"
-              :key="favorite.station.id"
-              :station="favorite.station"
-              :fuel="favorite.fuel"
-              show-fuel
-              :quantity="profile.quantity"
-              :quantity-unit="profile.quantityUnit"
-              @focus="() => undefined"
-            />
-          </div>
-        </template>
-
-        <template v-else>
-          <div v-if="loading && !result" class="grid-cards">
-            <div v-for="index in 4" :key="index" class="skeleton" />
-          </div>
-
-          <template v-else-if="result">
-            <div class="row" style="justify-content: space-between">
-              <h2>{{ countLabel }}</h2>
-              <div class="row" style="gap: 0.35rem; justify-content: flex-end">
-                <span v-if="loading" class="badge">a atualizar…</span>
-                <span v-if="effectiveRadius" class="badge">raio {{ effectiveRadius }} km</span>
-              </div>
+            <h2>{{ countLabel }}</h2>
+            <div class="row" style="gap: 0.35rem; justify-content: flex-end">
+              <span v-if="loading" class="badge">a atualizar…</span>
+              <span v-if="effectiveRadius" class="badge">raio {{ effectiveRadius }} km</span>
             </div>
+          </div>
 
-            <p v-if="truncatedFuels.length > 0" class="tiny muted">{{ limitNotice }}</p>
-            <p v-if="covered.length > 0" class="tiny muted">
-              {{ covered.length === 1 ? "Concelho" : "Concelhos" }}:
-              {{ covered.map((entry) => entry.municipality).join(", ") }}
-            </p>
+          <p v-if="truncatedFuels.length > 0" class="tiny muted">{{ limitNotice }}</p>
+          <p v-if="covered.length > 0" class="tiny muted">
+            {{ covered.length === 1 ? "Concelho" : "Concelhos" }}:
+            {{ covered.map((entry) => entry.municipality).join(", ") }}
+          </p>
 
-            <EmptyState
-              v-if="stations.length === 0"
-              title="Sem postos neste raio"
-              message="Aumenta o raio, remove filtros de marca ou escolhe outro concelho."
-            />
-
-            <FuelResults
-              v-else
-              :groups="visibleFuelGroups"
-              :quantity="profile.quantity"
-              :quantity-unit="profile.quantityUnit"
-              :mode="layoutMode"
-            />
-
-            <p v-if="result.result.note" class="notice tiny">{{ result.result.note }}</p>
-          </template>
-
-          <!-- An error banner already explains the state; hide the prompt asking to start. -->
           <EmptyState
-            v-else-if="!error"
-            title="Começa por um local"
-            message="Usa a tua localização para ver os postos mais próximos, ou escreve um concelho ou código postal."
+            v-if="stations.length === 0"
+            title="Sem postos neste raio"
+            message="Aumenta o raio, remove filtros de marca ou escolhe outro concelho."
           />
+
+          <FuelResults
+            v-else
+            :groups="visibleFuelGroups"
+            :quantity="profile.quantity"
+            :quantity-unit="profile.quantityUnit"
+            :mode="layoutMode"
+          />
+
+          <p v-if="result.result.note" class="notice tiny">{{ result.result.note }}</p>
         </template>
+
+        <!-- An error banner already explains the state; hide the prompt asking to start. -->
+        <EmptyState
+          v-else-if="!error"
+          title="Começa por um local"
+          message="Usa a tua localização para ver os postos mais próximos, ou escreve um concelho ou código postal."
+        />
       </div>
     </div>
   </section>

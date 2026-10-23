@@ -18,6 +18,8 @@ const props = defineProps<{
   rows: StationFuelRow[];
   /** The active search point: the user's position or a place picked on the map. */
   pin?: { latitude: number; longitude: number } | null;
+  /** Override the click/drag instruction on pages where the map is read-only. */
+  hint?: string;
 }>();
 
 const emit = defineEmits<{ pick: [point: { latitude: number; longitude: number }] }>();
@@ -134,7 +136,9 @@ watch(
       Mapa indisponível — não foi possível carregar os mosaicos. A lista de postos continua disponível.
     </div>
 
-    <p class="map-hint tiny">Clica no mapa ou arrasta o pino para escolher o local.</p>
+    <p v-if="props.hint !== ''" class="map-hint tiny">
+      {{ props.hint ?? "Clica no mapa ou arrasta o pino para escolher o local." }}
+    </p>
 
     <div v-if="mixedUnits && fuelLegend.length > 0" class="legend">
       <span v-for="entry in fuelLegend" :key="entry.label" class="row" style="gap: 0.25rem">

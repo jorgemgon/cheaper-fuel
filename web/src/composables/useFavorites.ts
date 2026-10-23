@@ -19,6 +19,11 @@ watch(
   { deep: true },
 );
 
+/** Synchronous check for the router's root redirect. */
+export function hasStoredFavorites(): boolean {
+  return favorites.value.length > 0;
+}
+
 /** Local, per-device favourites; nothing about them leaves the browser. */
 export function useFavorites() {
   const favoriteIds = computed(

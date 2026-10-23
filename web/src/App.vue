@@ -2,12 +2,15 @@
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 
+import { useFavorites } from "./composables/useFavorites";
+
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
 const route = useRoute();
+const { hasFavorites } = useFavorites();
 const online = ref(typeof navigator === "undefined" ? true : navigator.onLine);
 const installEvent = ref<BeforeInstallPromptEvent | null>(null);
 const standalone = ref(false);
@@ -47,7 +50,8 @@ onBeforeUnmount(() => {
     <header class="app-header">
       <RouterLink to="/" class="brand"><span class="brand-dot" /><span class="brand-name">cheaper-fuel</span></RouterLink>
       <nav class="nav" aria-label="Navegação principal">
-        <RouterLink to="/">Explorar</RouterLink>
+        <RouterLink v-if="hasFavorites" to="/favorites">Favoritos</RouterLink>
+        <RouterLink to="/explore">Explorar</RouterLink>
         <RouterLink to="/overview">Mercado</RouterLink>
         <RouterLink to="/history">Histórico</RouterLink>
         <RouterLink to="/discounts">Descontos</RouterLink>
