@@ -1,6 +1,7 @@
 node_modules/
 .wrangler/
 dist/
+web/dist/
 coverage/
 .dev.vars
 *.log

@@ -8,6 +8,11 @@
   "observability": {
     "enabled": true
   },
+  "assets": {
+    "directory": "./web/dist",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/mcp", "/mcp/*", "/health", "/docs"]
+  },
   "d1_databases": [
     {
       "binding": "DB",
@@ -19,6 +24,6 @@
   "vars": {
     "DGEG_BASE_URL": "https://precoscombustiveis.dgeg.gov.pt/api/PrecoComb",
     "CACHE_TTL_SECONDS": "86400",
-    "USER_AGENT": "cheaper-fuel-mcp/0.2 (+https://github.com/jorgemgon/cheaper-fuel)"
+    "USER_AGENT": "cheaper-fuel-mcp/0.3 (+https://github.com/jorgemgon/cheaper-fuel)"
   }
 }
