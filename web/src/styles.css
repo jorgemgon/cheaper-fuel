@@ -358,6 +358,40 @@ p {
   font-weight: 500;
 }
 
+/* One line per remaining price: base, guaranteed slice, other programmes. */
+.price-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--border);
+}
+
+.price-option {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.price-option-label {
+  color: var(--muted);
+  min-width: 0;
+}
+
+.price-option-note {
+  color: var(--warn);
+  font-size: 0.7rem;
+  margin-left: 0.35rem;
+}
+
+.price-option-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .station {
   display: flex;
   flex-direction: column;

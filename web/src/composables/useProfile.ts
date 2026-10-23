@@ -4,7 +4,6 @@ import { readJson, writeJson } from "../lib/storage";
 
 export type SortMode = "distance" | "price" | "effective_price";
 export type SortOrder = "asc" | "desc";
-export type DiscountMode = "best_case" | "guaranteed";
 export type ResultLimit = number | "all";
 
 export interface Profile {
@@ -17,7 +16,6 @@ export interface Profile {
   limit: ResultLimit;
   sort: SortMode;
   sortOrder: SortOrder;
-  discountMode: DiscountMode;
   fillLitres: number;
 }
 
@@ -35,12 +33,14 @@ const DEFAULTS: Profile = {
   // The main page opens ordered by price, cheapest first.
   sort: "price",
   sortOrder: "asc",
-  discountMode: "best_case",
   fillLitres: 50,
 };
 
-const stored = readJson<Partial<Profile>>("profile", {});
+const stored = readJson<Partial<Profile> & { discountMode?: unknown }>("profile", {});
 const initial: Profile = { ...DEFAULTS, ...stored };
+// The best-case/guaranteed filter is gone: cards show the best price plus
+// every remaining price. Drop the obsolete key instead of persisting it.
+delete (initial as Profile & { discountMode?: unknown }).discountMode;
 
 // Bumping this resets the stored display settings once, so everyone lands on
 // the current defaults instead of ones inherited from an older build. Cards,

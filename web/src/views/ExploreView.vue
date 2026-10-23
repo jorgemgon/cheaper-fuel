@@ -14,7 +14,7 @@ import EmptyState from "../components/EmptyState.vue";
 import MapPanel from "../components/MapPanel.vue";
 import StationCard from "../components/StationCard.vue";
 import { useGeolocation } from "../composables/useGeolocation";
-import { useProfile, type DiscountMode, type ResultLimit, type SortMode } from "../composables/useProfile";
+import { useProfile, type ResultLimit, type SortMode } from "../composables/useProfile";
 import { buildProfileOptions } from "../lib/discount-labels";
 import { formatDate, formatRelativeTime } from "../lib/format";
 import { GEO_CACHE_TTL_MS, isFresh } from "../lib/geo";
@@ -108,11 +108,6 @@ function setSort(key: SortMode) {
   profile.value.sortOrder = key === "distance" ? "asc" : "desc";
 }
 
-function setDiscountMode(event: Event) {
-  const value = (event.target as HTMLSelectElement).value;
-  profile.value.discountMode = value as DiscountMode;
-}
-
 function buildQuery(): StationQuery | null {
   const base: StationQuery = {
     fuels: profile.value.fuels,
@@ -122,7 +117,6 @@ function buildQuery(): StationQuery | null {
     radius_km: profile.value.radiusKm,
     cards: profile.value.cards,
     services: profile.value.services,
-    discount_mode: profile.value.discountMode,
     fill_litres: profile.value.fillLitres,
   };
 
@@ -215,7 +209,6 @@ watch(
     profile.value.radiusKm,
     profile.value.sort,
     profile.value.sortOrder,
-    profile.value.discountMode,
     profile.value.limit,
   ],
   scheduleSearch,
@@ -383,14 +376,6 @@ async function runInitialSearch(): Promise<void> {
               <template v-if="profile.sort === option.key">{{ profile.sortOrder === "desc" ? "↓" : "↑" }}</template>
             </button>
           </div>
-        </div>
-
-        <div class="field">
-          <label>Descontos</label>
-          <select class="select" :value="profile.discountMode" @change="setDiscountMode">
-            <option value="best_case">Melhor caso</option>
-            <option value="guaranteed">Só garantidos</option>
-          </select>
         </div>
       </div>
     </div>
