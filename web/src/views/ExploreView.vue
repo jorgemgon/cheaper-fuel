@@ -14,7 +14,7 @@ import EmptyState from "../components/EmptyState.vue";
 import MapPanel from "../components/MapPanel.vue";
 import StationCard from "../components/StationCard.vue";
 import { useGeolocation } from "../composables/useGeolocation";
-import { useProfile, type DiscountMode, type SortMode } from "../composables/useProfile";
+import { useProfile, type DiscountMode, type ResultLimit, type SortMode } from "../composables/useProfile";
 import { buildProfileOptions } from "../lib/discount-labels";
 import { formatDate, formatRelativeTime } from "../lib/format";
 import { GEO_CACHE_TTL_MS, isFresh } from "../lib/geo";
@@ -76,7 +76,21 @@ const countLabel = computed(() => {
   return `${stations.value.length} postos`;
 });
 
-const LIMIT_OPTIONS = [10, 20, 50, 100];
+const LIMIT_OPTIONS: Array<{ value: ResultLimit; label: string }> = [
+  // Everything inside the radius is the default; the counts are there for
+  // slow connections or very wide radii.
+  { value: "all", label: "Todos" },
+  { value: 10, label: "10" },
+  { value: 20, label: "20" },
+  { value: 50, label: "50" },
+  { value: 100, label: "100" },
+];
+
+const limitNotice = computed(() =>
+  profile.value.limit === "all"
+    ? "Todos os postos dentro do raio estão listados."
+    : `Limite de ${profile.value.limit} por combustível — muda em "Resultados" para veres o resto.`,
+);
 
 const sortOptions: Array<{ key: SortMode; label: string }> = [
   { key: "distance", label: "Distância" },
@@ -342,8 +356,10 @@ async function runInitialSearch(): Promise<void> {
 
         <div class="field" style="min-width: 5.5rem">
           <label for="results-limit">Resultados</label>
-          <select id="results-limit" v-model.number="profile.limit" class="select">
-            <option v-for="value in LIMIT_OPTIONS" :key="value" :value="value">{{ value }}</option>
+          <select id="results-limit" v-model="profile.limit" class="select">
+            <option v-for="option in LIMIT_OPTIONS" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
           </select>
         </div>
 
@@ -406,7 +422,7 @@ async function runInitialSearch(): Promise<void> {
           <template v-if="truncatedFuels.length > 1">
             {{ truncatedFuels.map((fuel) => `${fuel.fuel}: ${fuel.stations.length} de ${fuel.stations_found} postos`).join(" · ") }}.
           </template>
-          Limite de {{ profile.limit }} por combustível — aumenta em "Resultados" para veres o resto.
+          {{ limitNotice }}
         </p>
 
         <p v-if="covered.length > 0" class="tiny muted">

@@ -110,7 +110,7 @@ export interface StationQuery {
   station_type?: string;
   radius_km?: number;
   max_radius_km?: number;
-  limit?: number;
+  limit?: number | "all";
   min_price?: number;
   max_price?: number;
   updated_within_hours?: number;

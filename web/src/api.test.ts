@@ -20,6 +20,11 @@ describe("buildUrl", () => {
     expect(url).not.toContain("cards=");
   });
 
+  it("keeps the 'all' limit as a readable parameter", () => {
+    const url = buildUrl("/api/stations", { location: "Leiria", limit: "all" });
+    expect(url).toContain("limit=all");
+  });
+
   it("drops empty values", () => {
     const url = buildUrl("/api/market", { fuels: undefined, district: "", municipality: null });
     expect(url).not.toContain("fuels=");

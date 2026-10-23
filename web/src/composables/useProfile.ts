@@ -5,6 +5,7 @@ import { readJson, writeJson } from "../lib/storage";
 export type SortMode = "distance" | "price" | "effective_price";
 export type SortOrder = "asc" | "desc";
 export type DiscountMode = "best_case" | "guaranteed";
+export type ResultLimit = number | "all";
 
 export interface Profile {
   version: number;
@@ -13,14 +14,14 @@ export interface Profile {
   services: string[];
   location: string;
   radiusKm: number;
-  limit: number;
+  limit: ResultLimit;
   sort: SortMode;
   sortOrder: SortOrder;
   discountMode: DiscountMode;
   fillLitres: number;
 }
 
-const PROFILE_VERSION = 3;
+const PROFILE_VERSION = 4;
 
 const DEFAULTS: Profile = {
   version: PROFILE_VERSION,
@@ -29,7 +30,8 @@ const DEFAULTS: Profile = {
   services: [],
   location: "",
   radiusKm: 15,
-  limit: 20,
+  // Every station inside the radius: the radius itself is the only cap.
+  limit: "all",
   // The main page opens ordered by price, cheapest first.
   sort: "price",
   sortOrder: "asc",
