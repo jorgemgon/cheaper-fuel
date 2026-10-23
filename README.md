@@ -126,6 +126,7 @@ coupon, tiered by how many services you hold) is several rows sharing `programId
   "id": "galp-combina-1-coupon",
   "programId": "galp-combina",
   "programTitle": "COMBINA",
+  "description": "12 c/L coupon credited to the Cartão Continente after a grocery shop of at least €30 …",
   "tierId": "combina-1",
   "kind": "loyalty_tier",
   "supplier": "GALP",
@@ -138,6 +139,7 @@ coupon, tiered by how many services you hold) is several rows sharing `programId
   "value": 12,
   "combine": "sum",
   "caps": { "litresPerFill": 60, "litresPerYear": null },
+  "schedule": { "kind": "always", "weekdays": [], "daysOfMonth": [], "nth": null, "weekday": null },
   "validFrom": null,
   "validUntil": null,
   "confidence": "high",
@@ -148,6 +150,42 @@ coupon, tiered by how many services you hold) is several rows sharing `programId
 
 **There is no `status` column.** Activeness is always derived from `validFrom`/`validUntil` against today
 in Europe/Lisbon — `scheduled`, `active` or `expired`. Editing one date is enough; nothing can drift.
+
+Every discount also carries a required **`description`** — one readable sentence explaining the mechanic,
+so a client never has to reconstruct it from numbers and note fields.
+
+### Day-restricted offers
+
+Some deals only run on particular days. `schedule` expresses that:
+
+| `kind` | Meaning |
+|---|---|
+| `always` | every day (default) |
+| `weekdays` | only on `weekdays`, ISO numbers 1 = Monday … 7 = Sunday |
+| `day_of_month` | only on the listed `daysOfMonth` |
+| `nth_weekday_of_month` | only on the Nth `weekday`, e.g. the first Wednesday |
+
+```jsonc
+"schedule": { "kind": "nth_weekday_of_month", "weekdays": [], "daysOfMonth": [], "nth": 1, "weekday": 3 }
+```
+
+An offer that is not valid today is **never applied** to the effective price. It is returned under
+`scheduled_discounts` with its `schedule_label` and `next_date`, so an agent can answer "that one runs
+on the first Wednesday — next on 2026-11-04" instead of silently showing a price that isn't available.
+
+**What could actually be verified:**
+
+- **Intermarché** — €10 in Cartão Poupança on fills of €50 or more, on the **first Wednesday of each
+  month**, at participating stations; the credit is then spent in Intermarché stores from the following
+  Thursday to Sunday. Seeded at `medium` confidence (the recurrence comes from a third-party guide,
+  while Intermarché promo blogs report one-off Wednesday dates), so it is reported but never applied.
+- **BP** — a third-party guide reports 6 c/L on weekdays, 10 c/L at weekends and 15 c/L on the 15th for
+  Ultimate. No official page confirms it, so it is **not seeded**.
+- **Pingo Doce × BP** — the "20 € fuel" Friday/Saturday/Sunday voucher found online is from **2021**,
+  not a current programme, so it is not seeded.
+
+`schedule` is deliberately separate from `validFrom`/`validUntil`: a date range says when the programme
+exists, a schedule says which days inside it pay out.
 
 Requirements prefixed `spend:` are conditions the user can trigger by shopping. Everything else is
 something they must already hold, and is gated on the `cards` they declare.

@@ -102,9 +102,10 @@ npx @modelcontextprotocol/inspector</code></pre>
   <div class="notice">
     <strong>Discounts are advisory.</strong> <code>find_stations</code> accepts <code>cards</code> and
     <code>services</code> and reports an <code>effective_price</code> after the programmes the caller
-    qualifies for. Only high-confidence programmes are applied; anything still being verified is returned
-    separately as <code>possible_discounts</code>, and deals published without a number are catalogued
-    rather than guessed. Terms belong to the operators — confirm at the pump.
+    qualifies for. Offers that only run on certain days (for example the first Wednesday of the month)
+    are reported with their schedule and next date rather than applied. Only high-confidence programmes
+    are applied; anything still being verified is returned separately as
+    <code>possible_discounts</code>. Terms belong to the operators — confirm at the pump.
   </div>
 
   <div class="notice">
