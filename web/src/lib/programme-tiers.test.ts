@@ -1,7 +1,7 @@
 import type { DiscountEntryInfo, DiscountProgrammeInfo } from "@contracts";
 import { describe, expect, it } from "vitest";
 
-import { buildProgrammeTiers, buildTierLadders, formatTierValue } from "./programme-tiers";
+import { buildProgrammeTiers, buildTierLadders, formatTierValue, tierEffectivePrice } from "./programme-tiers";
 
 function entry(overrides: Partial<DiscountEntryInfo> & { id: string }): DiscountEntryInfo {
   return {
@@ -141,5 +141,31 @@ describe("formatTierValue", () => {
     expect(formatTierValue(cents)).toBe("20 cênt./L");
     expect(formatTierValue(euros).replace(/\s/g, " ")).toBe("2,00 € por abastecimento");
     expect(formatTierValue(percent)).toBe("10%");
+  });
+});
+
+describe("tierEffectivePrice", () => {
+  it("turns each service level into the price you would pay", () => {
+    const base = 2.304;
+    expect(tierEffectivePrice(base, { valueType: "cents_per_litre", value: 8 }, 50)).toBe(2.224);
+    expect(tierEffectivePrice(base, { valueType: "cents_per_litre", value: 13 }, 50)).toBe(2.174);
+    expect(tierEffectivePrice(base, { valueType: "cents_per_litre", value: 18 }, 50)).toBe(2.124);
+  });
+
+  it("handles COMBINA levels on a 2,120 €/L station", () => {
+    expect(tierEffectivePrice(2.12, { valueType: "cents_per_litre", value: 20 }, 50)).toBe(1.92);
+    expect(tierEffectivePrice(2.12, { valueType: "cents_per_litre", value: 30 }, 50)).toBe(1.82);
+  });
+
+  it("supports percent and per-fill couples", () => {
+    expect(tierEffectivePrice(2.12, { valueType: "percent", value: 10 }, 50)).toBe(1.908);
+    expect(tierEffectivePrice(2.12, { valueType: "eur_per_fill", value: 2 }, 50)).toBe(2.08);
+    expect(tierEffectivePrice(2.12, { valueType: "eur_per_fill", value: 2 }, 100)).toBe(2.1);
+  });
+
+  it("never goes below zero and needs a base price", () => {
+    expect(tierEffectivePrice(2, { valueType: "eur_per_fill", value: 200 }, 50)).toBe(0);
+    expect(tierEffectivePrice(null, { valueType: "cents_per_litre", value: 10 }, 50)).toBeNull();
+    expect(tierEffectivePrice(2.12, { valueType: "cents_per_litre", value: 10 }, 0)).toBeNull();
   });
 });

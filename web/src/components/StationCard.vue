@@ -3,10 +3,14 @@ import type { StationInfo } from "@contracts";
 import { computed } from "vue";
 
 import type { QuantityUnit } from "../composables/useProfile";
-import { fillEstimate } from "../lib/fill-costs";
-import { formatCents, formatKm, formatRelativeTime } from "../lib/format";
+import { fillEstimate, unitSymbol } from "../lib/fill-costs";
+import { formatCents, formatKm, formatMoney, formatPrice, formatQuantity, formatRelativeTime } from "../lib/format";
 import { bestPriceDisplay, remainingPriceOptions } from "../lib/price-options";
-import { formatTierValue, type ProgrammeTier } from "../lib/programme-tiers";
+import {
+  formatTierValue,
+  tierEffectivePrice,
+  type ProgrammeTier,
+} from "../lib/programme-tiers";
 
 const props = defineProps<{
   station: StationInfo;
@@ -31,6 +35,25 @@ function isActiveTier(tier: ProgrammeTier): boolean {
   // A flat programme has a single level, which is the applied one by default.
   return (props.tiers?.length ?? 0) === 1;
 }
+
+/** Each level with the price it would give and the spend for the quantity. */
+const tierRows = computed(() =>
+  (props.tiers ?? []).map((tier) => {
+    const referenceLitres = props.quantityUnit === "litres" ? props.quantity : 50;
+    const price = tierEffectivePrice(props.station.price_eur, tier, referenceLitres);
+    return {
+      tier,
+      active: isActiveTier(tier),
+      unitPrice: price === null ? null : formatPrice(price, props.station.unit),
+      secondary:
+        price === null
+          ? null
+          : props.quantityUnit === "litres"
+            ? formatMoney(props.quantity * price)
+            : `${formatQuantity(props.quantity / price)} ${unitSymbol(props.station.unit)}`,
+    };
+  }),
+);
 </script>
 
 <template>
@@ -92,16 +115,25 @@ function isActiveTier(tier: ProgrammeTier): boolean {
         <span class="badge">{{ props.station.discount.schedule_label }}</span>
         <span v-if="props.station.discount.stale" class="badge badge-warn">verificar</span>
       </div>
-      <div v-if="props.tiers && props.tiers.length > 0" class="tier-ladder">
-        <span class="tiny muted">Níveis:</span>
-        <span
-          v-for="tier in props.tiers"
-          :key="tier.id"
-          class="tier-step"
-          :class="{ 'is-on': isActiveTier(tier) }"
-        >
-          {{ tier.label }} · {{ formatTierValue(tier) }}
-        </span>
+      <div v-if="tierRows.length > 0" class="tier-ladder">
+        <span class="tiny muted">Níveis do programa</span>
+        <div class="tier-levels">
+          <div
+            v-for="row in tierRows"
+            :key="row.tier.id"
+            class="tier-row"
+            :class="{ 'is-on': row.active }"
+          >
+            <span class="tier-row-label">
+              {{ row.tier.label }} · {{ formatTierValue(row.tier) }}
+              <template v-if="row.active"> · atual</template>
+            </span>
+            <span class="tier-row-values">
+              <span class="tier-row-price">{{ row.unitPrice }}</span>
+              <span v-if="row.secondary" class="tier-row-total">{{ row.secondary }}</span>
+            </span>
+          </div>
+        </div>
       </div>
       <p class="tiny muted" style="margin: 0">{{ props.station.discount.description }}</p>
     </template>

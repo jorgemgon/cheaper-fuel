@@ -101,3 +101,31 @@ export function formatTierValue(tier: ProgrammeTier): string {
       return `${formatQuantity(tier.value)}%`;
   }
 }
+
+/**
+ * What you would pay per unit at this level, from the station's list price.
+ * A per-fill coupon is spread over the reference fill (the chosen litres, or
+ * 50 L in euro mode where the fill size follows from the price).
+ */
+export function tierEffectivePrice(
+  basePrice: number | null,
+  tier: Pick<ProgrammeTier, "valueType" | "value">,
+  referenceLitres: number,
+): number | null {
+  if (basePrice === null || !Number.isFinite(basePrice) || referenceLitres <= 0) return null;
+
+  let price: number;
+  switch (tier.valueType) {
+    case "cents_per_litre":
+      price = basePrice - tier.value / 100;
+      break;
+    case "percent":
+      price = basePrice * (1 - tier.value / 100);
+      break;
+    case "eur_per_fill":
+      price = basePrice - tier.value / referenceLitres;
+      break;
+  }
+
+  return Math.max(0, Math.round(price * 1000) / 1000);
+}
