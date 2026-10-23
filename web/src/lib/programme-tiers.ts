@@ -1,4 +1,4 @@
-import type { DiscountEntryInfo, DiscountProgrammeInfo } from "@contracts";
+import type { DiscountEntryInfo, DiscountInfo, DiscountProgrammeInfo } from "@contracts";
 
 import { formatCents, formatMoney, formatQuantity } from "./format";
 
@@ -88,6 +88,28 @@ export function buildTierLadders(
     if (tiers.length > 0) ladders.set(programme.program_id, tiers);
   }
   return ladders;
+}
+
+/**
+ * The ladder for an applied discount, falling back to a single level built
+ * from the resolution when the catalogue is unavailable.
+ */
+export function tiersForDiscount(
+  ladders: ReadonlyMap<string, ProgrammeTier[]>,
+  discount: DiscountInfo | undefined,
+): ProgrammeTier[] {
+  if (!discount) return [];
+  const ladder = ladders.get(discount.program_id);
+  if (ladder && ladder.length > 0) return [...ladder];
+  return [
+    {
+      id: discount.tier ?? "applied",
+      label: discount.label?.trim() || "Aplicado",
+      minServices: 0,
+      valueType: "cents_per_litre",
+      value: discount.applied_cents,
+    },
+  ];
 }
 
 /** "20 cênt./L", "2,00 € por abastecimento" or "10%". */

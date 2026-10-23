@@ -33,11 +33,12 @@ export interface Profile {
 /** Default search radius for the dashboard, in km. */
 export const DEFAULT_RADIUS_KM = 5;
 
-const PROFILE_VERSION = 7;
+const PROFILE_VERSION = 8;
 
 const DEFAULTS: Profile = {
   version: PROFILE_VERSION,
-  fuels: ["Gasóleo simples"],
+  // The two fuels the pump most people compare.
+  fuels: ["Gasóleo simples", "Gasolina simples 95"],
   cards: [],
   services: [],
   // Seeded with every card/app and service the catalogue knows about, so the
@@ -73,14 +74,17 @@ if ((initial.sort as string) === "effective_price") initial.sort = "price";
 
 // Bumping this resets the stored display settings once, so everyone lands on
 // the current defaults instead of ones inherited from an older build. Cards,
-// services, fuels and location are preserved; a chosen result limit survives.
+// services and location are preserved; a chosen result limit survives.
 const storedVersion = stored.version ?? 1;
 if (storedVersion < 4) initial.limit = DEFAULTS.limit;
-if (storedVersion < PROFILE_VERSION) {
+// Version 7 changed the default radius.
+if (storedVersion < 7) {
   initial.sort = DEFAULTS.sort;
   initial.sortOrder = DEFAULTS.sortOrder;
   initial.radiusKm = DEFAULTS.radiusKm;
 }
+// Version 8 changed the default fuel selection.
+if (storedVersion < 8) initial.fuels = DEFAULTS.fuels;
 initial.version = PROFILE_VERSION;
 
 const profile = ref<Profile>(initial);

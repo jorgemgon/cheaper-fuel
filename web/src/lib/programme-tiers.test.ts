@@ -1,7 +1,7 @@
-import type { DiscountEntryInfo, DiscountProgrammeInfo } from "@contracts";
+import type { DiscountEntryInfo, DiscountInfo, DiscountProgrammeInfo } from "@contracts";
 import { describe, expect, it } from "vitest";
 
-import { buildProgrammeTiers, buildTierLadders, formatTierValue, tierEffectivePrice } from "./programme-tiers";
+import { buildProgrammeTiers, buildTierLadders, formatTierValue, tiersForDiscount, tierEffectivePrice } from "./programme-tiers";
 
 function entry(overrides: Partial<DiscountEntryInfo> & { id: string }): DiscountEntryInfo {
   return {
@@ -167,5 +167,58 @@ describe("tierEffectivePrice", () => {
     expect(tierEffectivePrice(2, { valueType: "eur_per_fill", value: 200 }, 50)).toBe(0);
     expect(tierEffectivePrice(null, { valueType: "cents_per_litre", value: 10 }, 50)).toBeNull();
     expect(tierEffectivePrice(2.12, { valueType: "cents_per_litre", value: 10 }, 0)).toBeNull();
+  });
+});
+
+function discount(overrides: Partial<DiscountInfo> = {}): DiscountInfo {
+  return {
+    program_id: "galp-combina",
+    program_title: "COMBINA",
+    description: "",
+    tier: "combina-3",
+    label: "3+ serviços",
+    guaranteed_cents: 10,
+    max_cents: 30,
+    applied_cents: 30,
+    effective_price_eur: 1.82,
+    effective_price_display: "1,820 €/litro",
+    saves_eur_per_fill: 15,
+    conditions: [],
+    confidence: "high",
+    schedule: { kind: "always", weekdays: [], daysOfMonth: [], nth: null, weekday: null },
+    schedule_label: "Sempre",
+    applies_today: true,
+    stale: false,
+    ...overrides,
+  };
+}
+
+describe("tiersForDiscount", () => {
+  const ladder = buildProgrammeTiers(
+    programme("galp-combina", [
+      entry({ id: "1", tier: "combina-1", tier_label: "1 serviço", min_services: 1, value: 20 }),
+      entry({ id: "2", tier: "combina-2", tier_label: "2 serviços", min_services: 2, value: 25 }),
+      entry({ id: "3", tier: "combina-3", tier_label: "3+ serviços", min_services: 3, value: 30 }),
+    ]),
+  );
+
+  it("returns the catalogue ladder for the applied programme", () => {
+    const tiers = tiersForDiscount(new Map([["galp-combina", ladder]]), discount());
+    expect(tiers.map((tier) => tier.label)).toEqual(["1 serviço", "2 serviços", "3+ serviços"]);
+  });
+
+  it("falls back to the applied level when the catalogue is missing", () => {
+    const tiers = tiersForDiscount(new Map(), discount());
+    expect(tiers).toHaveLength(1);
+    expect(tiers[0]).toMatchObject({
+      id: "combina-3",
+      label: "3+ serviços",
+      valueType: "cents_per_litre",
+      value: 30,
+    });
+  });
+
+  it("returns nothing without a discount", () => {
+    expect(tiersForDiscount(new Map(), undefined)).toEqual([]);
   });
 });

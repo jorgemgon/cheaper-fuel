@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from "vue";
+import { useRoute } from "vue-router";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+const route = useRoute();
 const online = ref(typeof navigator === "undefined" ? true : navigator.onLine);
 const installEvent = ref<BeforeInstallPromptEvent | null>(null);
 const standalone = ref(false);
@@ -58,7 +60,7 @@ onBeforeUnmount(() => {
 
     <div v-if="!online" class="banner">Estás offline — a mostrar os últimos dados guardados.</div>
 
-    <main class="app-main">
+    <main class="app-main" :class="{ 'app-main--wide': Boolean(route.meta.wide) }">
       <RouterView />
     </main>
 

@@ -54,14 +54,16 @@ A Vue 3 PWA served from the same Worker (`/`), designed phone-first for use at t
   Filters only restrict when they have a value: clearing the fuel chips requests every fuel, clearing
   cards/services goes back to list prices, and each filter, the location and the quantity carry a
   clear action.
-  Selecting several fuels
-  puts the cards in one collapsible section per fuel (with its own count, and `20 de 84` when the
-  results limit truncates it). Fuel filter chips and those section headers share an identity colour —
+  Selecting several fuels groups the cards by fuel — collapsible sections on desktop, a tabbed swipe
+  carousel on phones — each with its own count and `20 de 84` when the results limit truncates it.
+  Fuel filter chips and those section headers share an identity colour —
   diesel yellow, petrol lime green, GPL blue, specials in the same family — while the map keeps its
   cheap → dear price colours. The map carries a search pin: using your location drops it on your
   position, and clicking the map or dragging the pin re-searches from that point. The last search — a
   place name, the geolocation position or a picked point — is restored on reload, so a refresh keeps
-  the same list on screen.
+  the same list on screen. The shell adapts to three sizes: wide desktops pin a filter rail and a tall
+  map beside the results, mid-size desktops keep a collapsible filter bar over a map/results split,
+  and phones use a `Filtros` drawer with the fuel carousel.
 - **Mercado** — per-fuel min/average/median/max, spread, observed national discount and a comparison
   chart.
 - **Histórico** — daily national averages as **Chart.js** line and bar charts (with and without discount).

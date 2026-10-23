@@ -7,4 +7,11 @@ describe("profile defaults", () => {
     expect(DEFAULT_RADIUS_KM).toBe(5);
     expect(useProfile().profile.value.radiusKm).toBe(DEFAULT_RADIUS_KM);
   });
+
+  it("opens with diesel and petrol 95 selected", () => {
+    expect(useProfile().profile.value.fuels).toEqual([
+      "Gasóleo simples",
+      "Gasolina simples 95",
+    ]);
+  });
 });

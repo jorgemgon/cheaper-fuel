@@ -781,31 +781,234 @@ table.data th {
 }
 
 @media (min-width: 900px) {
-  .explore-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-    gap: 1rem;
-    align-items: start;
-  }
-
-  .explore-layout .map-panel {
-    position: sticky;
-    top: 4.2rem;
-    height: calc(100dvh - 6rem);
-  }
-
-  .explore-layout .map-panel .map-canvas {
-    min-height: 100%;
-  }
-
   .app-main {
     padding: 1.25rem 1.5rem 4rem;
   }
 }
 
-@media (max-width: 899px) {
-  .explore-layout .map-panel {
-    height: 46dvh;
-    min-height: 260px;
+/* ---- Explore three-mode layout ------------------------------------------ */
+
+:root {
+  --sticky-top: 4.2rem;
+}
+
+.app-main--wide {
+  max-width: 90rem;
+}
+
+@media (min-width: 1280px) {
+  .app-main--wide {
+    max-width: 100rem;
   }
 }
+
+.explore-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+/* Desktop big: filters rail | map | results. */
+.explore-layout--big {
+  display: grid;
+  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr) minmax(360px, 440px);
+  gap: 1rem;
+  align-items: start;
+}
+
+.explore-layout--big .explore-filters {
+  position: sticky;
+  top: var(--sticky-top);
+  max-height: calc(100dvh - 6rem);
+  overflow-y: auto;
+}
+
+.explore-layout--big .explore-map,
+.explore-layout--small .explore-map {
+  position: sticky;
+  top: var(--sticky-top);
+  height: calc(100dvh - 6rem);
+  min-height: 320px;
+}
+
+.explore-layout--big .explore-map .map-panel,
+.explore-layout--small .explore-map .map-panel,
+.explore-layout--big .explore-map .map-placeholder,
+.explore-layout--small .explore-map .map-placeholder {
+  height: 100%;
+}
+
+.explore-layout--big .explore-map .map-canvas,
+.explore-layout--small .explore-map .map-canvas {
+  min-height: 100%;
+}
+
+/* Desktop small: collapsible filter bar over map | results. */
+.explore-layout--small {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+  gap: 1rem;
+  align-items: start;
+}
+
+.explore-layout--small .explore-filters-drawer {
+  grid-column: 1 / -1;
+}
+
+/* Filter drawer / bar. */
+.explore-filters-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.explore-filters-summary::-webkit-details-marker {
+  display: none;
+}
+
+.explore-filters-title {
+  font-weight: 600;
+}
+
+.explore-filters-summary::after {
+  content: "▾";
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.8rem;
+  transition: transform 0.15s ease;
+}
+
+.explore-filters-drawer:not([open]) .explore-filters-summary::after {
+  transform: rotate(-90deg);
+}
+
+.explore-filters-drawer[open] .explore-filters-summary {
+  margin-bottom: 0.85rem;
+}
+
+.map-placeholder {
+  display: grid;
+  place-items: center;
+  min-height: 320px;
+  text-align: center;
+}
+
+/* Filter fields inside the rail/bar. */
+.filters-grid {
+  gap: 0.85rem;
+}
+
+.filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+/* Mobile: single column, map 40dvh. */
+.explore-layout--mobile .explore-map .map-panel {
+  height: 40dvh;
+  min-height: 240px;
+}
+
+/* Fuel carousel tabs + pager. */
+.fuel-tabs {
+  position: sticky;
+  top: var(--sticky-top);
+  z-index: 20;
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0.35rem 0;
+  background: var(--bg);
+}
+
+.fuel-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.fuel-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  padding: 0.38rem 0.7rem;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.fuel-tab.is-on {
+  color: var(--text);
+  border-color: var(--fuel-color, var(--accent));
+  background: var(--surface-2);
+}
+
+.fuel-tab-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--fuel-color, var(--muted));
+}
+
+.fuel-tab-count {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.fuel-pager {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.fuel-pager-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.fuel-pager-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+}
+
+.fuel-pager-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.fuel-slide-enter-active,
+.fuel-slide-leave-active {
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.fuel-slide-enter-from {
+  opacity: 0;
+  transform: translateX(12px);
+}
+
+.fuel-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-12px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fuel-slide-enter-active,
+  .fuel-slide-leave-active {
+    transition: none;
+  }
+}
+

@@ -40,6 +40,7 @@ export function useLeafletMap(container: Ref<HTMLElement | null>, handlers: MapH
   let map: L.Map | null = null;
   let cluster: ReturnType<typeof L.markerClusterGroup> | null = null;
   let pin: L.Marker | null = null;
+  let resizeObserver: ResizeObserver | null = null;
   const tileFailed = ref(false);
 
   function init(): void {
@@ -81,6 +82,13 @@ export function useLeafletMap(container: Ref<HTMLElement | null>, handlers: MapH
     map.on("click", (event: L.LeafletMouseEvent) => {
       handlers.onPick?.({ latitude: event.latlng.lat, longitude: event.latlng.lng });
     });
+
+    // The map sits in a responsive grid: resizing (breakpoint switch, filter
+    // drawer) must re-measure it or tiles and markers drift.
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => map?.invalidateSize());
+      resizeObserver.observe(container.value);
+    }
   }
 
   function setStations(points: readonly MapPoint[], fit = true): void {
@@ -143,6 +151,8 @@ export function useLeafletMap(container: Ref<HTMLElement | null>, handlers: MapH
   }
 
   function destroy(): void {
+    resizeObserver?.disconnect();
+    resizeObserver = null;
     map?.remove();
     map = null;
     cluster = null;

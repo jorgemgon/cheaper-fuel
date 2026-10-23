@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 
 const routes: RouteRecordRaw[] = [
-  { path: "/", name: "explore", component: () => import("./views/ExploreView.vue") },
+  { path: "/", name: "explore", component: () => import("./views/ExploreView.vue"), meta: { wide: true } },
   { path: "/overview", name: "overview", component: () => import("./views/OverviewView.vue") },
   { path: "/history", name: "history", component: () => import("./views/HistoryView.vue") },
   { path: "/discounts", name: "discounts", component: () => import("./views/DiscountsView.vue") },
