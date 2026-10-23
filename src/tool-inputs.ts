@@ -71,9 +71,9 @@ export const findStationsInput = z.object({
     .max(10)
     .optional()
     .describe(
-      'Services or contracts held, e.g. ["galp_energy", "nos_package"], or for Repsol tiers ' +
-        '["repsol_electricity", "repsol_gas"]. They satisfy requirements and set the tier; a programme ' +
-        "only counts services from its own supplier/partners.",
+      'Services or contracts held, e.g. ["galp_energy", "galp_gas", "galp_solar", "nos_package"], ' +
+        'or for Repsol tiers ["repsol_electricity", "repsol_gas"]. They satisfy requirements and set ' +
+        "the tier; a programme only counts services from its own supplier/partners.",
     ),
   discount_mode: z
     .enum(["best_case", "guaranteed"])
@@ -103,7 +103,9 @@ export const stationDetailsInput = z.object({
     .array(z.string())
     .max(10)
     .optional()
-    .describe('Services held for tiered programmes, e.g. ["galp_energy", "nos_package"].'),
+    .describe(
+      'Services held for tiered programmes, e.g. ["galp_energy", "galp_gas", "galp_solar", "nos_package"].',
+    ),
   discount_mode: z.enum(["best_case", "guaranteed"]).optional(),
   fill_litres: z.number().min(5).max(120).optional(),
   lang: z.enum(["en", "pt"]).optional(),

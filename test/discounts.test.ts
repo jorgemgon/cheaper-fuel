@@ -210,6 +210,15 @@ describe("resolveForStation", () => {
       TODAY,
     );
     expect(stillTwo.applied?.tierId).toBe("combina-2");
+
+    const three = resolveForStation(
+      rows,
+      galpStation,
+      "litro",
+      sanitizeProfile({ cards, services: ["galp_energy", "galp_gas", "galp_solar"] }),
+      TODAY,
+    );
+    expect(three.applied?.tierId).toBe("combina-3");
   });
 
   it("reports missing cards instead of silently dropping the programme", () => {

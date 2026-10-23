@@ -34,8 +34,19 @@ describe("allProfileKeys", () => {
     const all = allProfileKeys(options);
 
     expect(all.cards).toContain("continente_card");
-    expect(all.services).toContain("galp_energy");
+    expect(all.services).toEqual(
+      expect.arrayContaining(["galp_energy", "galp_gas", "galp_solar", "nos_package"]),
+    );
     expect(all.cards.length + all.services.length).toBeGreaterThan(5);
+  });
+
+  it("labels the COMBINA Galp services", () => {
+    expect(buildProfileOptions([])).toEqual(
+      expect.arrayContaining([
+        { key: "galp_gas", label: "Gás natural Galp", group: "service" },
+        { key: "galp_solar", label: "Painéis solares Galp", group: "service" },
+      ]),
+    );
   });
 });
 

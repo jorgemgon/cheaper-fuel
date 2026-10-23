@@ -33,7 +33,7 @@ export interface Profile {
 /** Default search radius for the dashboard, in km. */
 export const DEFAULT_RADIUS_KM = 5;
 
-const PROFILE_VERSION = 8;
+const PROFILE_VERSION = 9;
 
 const DEFAULTS: Profile = {
   version: PROFILE_VERSION,
@@ -85,9 +85,26 @@ if (storedVersion < 7) {
 }
 // Version 8 changed the default fuel selection.
 if (storedVersion < 8) initial.fuels = DEFAULTS.fuels;
+// Version 9 added the Galp gas/solar services. Profiles that still had every
+// service selected keep that "everything" state; partial choices are kept.
+if (storedVersion < 9) {
+  const previousAllServices = [
+    "galp_energy",
+    "nos_package",
+    "repsol_electricity",
+    "repsol_gas",
+  ];
+  const storedServices = stored.services ?? [];
+  if (previousAllServices.every((key) => storedServices.includes(key))) {
+    initial.services = [...new Set([...storedServices, "galp_gas", "galp_solar"])];
+  }
+}
 initial.version = PROFILE_VERSION;
 
 const profile = ref<Profile>(initial);
+// Persist a one-off migration immediately; otherwise a profile that is never
+// edited would re-run it on every load and keep the old version in storage.
+if (storedVersion !== PROFILE_VERSION) writeJson("profile", initial);
 watch(profile, (value) => writeJson("profile", value), { deep: true });
 
 function toggle(list: string[], key: string): string[] {

@@ -58,8 +58,9 @@ designed phone-first for use at the pump:
   discounted card lists its programme's full level ladder — COMBINA's 1 / 2 / 3+ services, Repsol's
   base / electricity / gas, or a flat per-fill coupon — with each level's resulting price and the spend
   for the chosen quantity, and the active level highlighted. A programme only counts services from its
-  own supplier/partners (COMBINA counts Galp/NOS contracts, Repsol counts Repsol electricity/gas), so
-  declaring an unrelated contract never unlocks a higher tier.
+  own supplier/partners: COMBINA counts the four Galp/NOS services (electricity, gas, solar and the NOS
+  package), while Repsol counts Repsol electricity/gas, so declaring an unrelated contract never
+  unlocks a higher tier.
   Filters only restrict when they have a value: clearing the fuel chips requests every fuel, clearing
   cards/services goes back to list prices. Fuel, card and service groups carry `Tudo` (select every
   option) and `Limpar` actions, and each filter, the location and the quantity have a clear action.
@@ -330,6 +331,8 @@ adds a `discount` block to each station:
 - `fill_litres` (default 50) makes per-fill caps realistic.
 - `levels` lists every tier of the programme with the price each tier would give (best case, without
   applying weekday schedules), so a smaller discount can be compared with the applied one.
+- COMBINA's service keys are `galp_energy` (electricity), `galp_gas`, `galp_solar` and `nos_package`;
+  any three unlock the 3+ tier.
 - **Only `confidence: "high"` programmes affect `effective_price`.** Medium/low entries appear as
   `possible_discounts` with `verify: true`, so an unverified mechanic can never produce a wrong ranking.
 - Programmes whose mechanic is published without a number are stored **unquantified** (`value: null`)

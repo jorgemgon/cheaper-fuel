@@ -45,6 +45,8 @@ const LABELS: Record<string, string> = {
   continente_card: "Cartão Continente",
   mundo_galp_app: "App Mundo Galp",
   galp_energy: "Galp energia",
+  galp_gas: "Gás natural Galp",
+  galp_solar: "Painéis solares Galp",
   nos_package: "Pacote NOS",
   repsol_partner_card: "Cartão parceiro Repsol",
   repsol_electricity: "Repsol eletricidade",
@@ -59,7 +61,14 @@ const LABELS: Record<string, string> = {
   "spend:repsol_fuel_30": "30 € em combustível",
 };
 
-const SERVICE_KEYS = new Set(["galp_energy", "nos_package", "repsol_electricity", "repsol_gas"]);
+const SERVICE_KEYS = new Set([
+  "galp_energy",
+  "galp_gas",
+  "galp_solar",
+  "nos_package",
+  "repsol_electricity",
+  "repsol_gas",
+]);
 
 const FALLBACK_KEYS = [
   "continente_card",
@@ -70,9 +79,11 @@ const FALLBACK_KEYS = [
   "my_repsol",
   "intermarche_card",
   "galp_energy",
+  "galp_gas",
+  "galp_solar",
+  "nos_package",
   "repsol_electricity",
   "repsol_gas",
-  "nos_package",
 ];
 
 export function humanizeKey(key: string): string {
