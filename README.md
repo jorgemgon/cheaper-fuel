@@ -37,7 +37,9 @@ A Vue 3 PWA served from the same Worker (`/`), designed phone-first for use at t
 
 - **Explorar** — asks for your location (one tap) or takes a concelho/postcode, then shows the nearest
   stations on a **Leaflet map** with markers colour-coded by *effective price* after discounts,
-  synchronised with the result list.
+  synchronised with the result list. Every station inside the chosen radius is listed by default;
+  `Resultados` can cap the list (10/20/50/100) for a slow connection, and the header says
+  `20 de 84 postos` whenever a cap truncates what the radius actually holds.
 - **Mercado** — per-fuel min/average/median/max, spread, observed national discount and a comparison
   chart.
 - **Histórico** — daily national averages as **Chart.js** line and bar charts (with and without discount).
@@ -74,7 +76,9 @@ MCP tools.
 List parameters accept either comma-separated values (`?fuels=diesel,95`) or repeated keys. Endpoints
 that return discount descriptions accept `lang=en` (default) or `lang=pt`; the dashboard asks for `pt`.
 `/api/stations` also takes `sort` (`distance`, `price` or `effective_price`) and `sort_order`
-(`asc` by default, `desc` for dearest first — the dashboard opens with `price` / `asc`).
+(`asc` by default, `desc` for dearest first — the dashboard opens with `price` / `asc`). Its `limit`
+accepts a count (1–100 per fuel) or `all` for every station inside the radius; the dashboard sends
+`limit=all` unless `Resultados` narrows it.
 Errors are `{ "error": { "code", "message", "hint?" } }` with 400 for validation, 404 for an unknown
 station, 422 for coordinates outside mainland Portugal, 502 for upstream failures and 503 when the
 discount registry is unavailable.
@@ -116,7 +120,11 @@ Six tools, deliberately few, so an agent does not wander between lookups.
 - **One call returns everything**: price, formatted display price, address, coordinates, distance,
   map link and freshness.
 - **Self-widening radius.** If a small concelho has too few stations, `find_stations` grows the radius
-  up to `max_radius_km` and reports `effective_radius_km`.
+  up to `max_radius_km` and reports `effective_radius_km`. With `limit: "all"` the chosen radius is the
+  boundary instead, and every station inside it comes back.
+- **Nothing hidden.** `limit: "all"` returns every station in the radius with no per-fuel cap; the
+  default (5 per fuel) and any numeric `limit` truncation stays visible in the response through
+  `stations_found`.
 - **Server `instructions`** in the MCP handshake give the model a routing table, so it picks the right
   tool first time.
 - **Errors terminate loops.** Failures return `{ error: { code, message, hint, candidates? } }` with a
