@@ -137,6 +137,24 @@ describe("searchProximity", () => {
     expect(result.effectiveRadiusKm).toBe(40);
     expect(result.byFuel.get("Gasóleo simples")).toHaveLength(2);
   });
+
+  it("widens on the requested quota while keeping the whole pool", () => {
+    const result = searchProximity({
+      rows: [near, far],
+      fuelNames: ["Gasóleo simples"],
+      point: { lat: 39.74, lon: -8.81 },
+      radiusKm: 2,
+      maxRadiusKm: 40,
+      // Effective-price sorting ranks every candidate...
+      limitPerFuel: Number.POSITIVE_INFINITY,
+      // ...but the radius still grows until it holds two stations.
+      widenTo: 2,
+      sort: "distance",
+    });
+
+    expect(result.effectiveRadiusKm).toBeGreaterThan(2);
+    expect(result.byFuel.get("Gasóleo simples")).toHaveLength(2);
+  });
 });
 
 describe("sortByPrice", () => {

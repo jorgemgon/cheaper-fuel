@@ -52,6 +52,17 @@ export interface ProfileOption {
   group: "card" | "service";
 }
 
+/** Every card/app and service key, used to start with everything selected. */
+export function allProfileKeys(options: readonly ProfileOption[]): {
+  cards: string[];
+  services: string[];
+} {
+  return {
+    cards: options.filter((option) => option.group === "card").map((option) => option.key),
+    services: options.filter((option) => option.group === "service").map((option) => option.key),
+  };
+}
+
 /** Builds the checkbox options from whatever the registry actually requires. */
 export function buildProfileOptions(programmes: readonly DiscountProgrammeInfo[]): ProfileOption[] {
   const found = new Map<string, ProfileOption>();

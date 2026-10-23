@@ -121,6 +121,12 @@ export interface ProximityOptions {
   radiusKm: number;
   maxRadiusKm: number;
   limitPerFuel: number;
+  /**
+   * Results per fuel that stop the radius from growing. Defaults to
+   * limitPerFuel; sorting by effective price keeps an unbounded pool but still
+   * widens until it has enough candidates.
+   */
+  widenTo?: number;
   sort: SortMode;
   order?: SortOrder;
 }
@@ -138,6 +144,7 @@ export interface ProximityResult {
  */
 export function searchProximity(options: ProximityOptions): ProximityResult {
   const { rows, fuelNames, point, radiusKm, maxRadiusKm, limitPerFuel, sort, order = "asc" } = options;
+  const widenThreshold = options.widenTo ?? limitPerFuel;
   const withDistance = attachDistance(rows, point);
   const ceiling = Math.max(radiusKm, maxRadiusKm);
 
@@ -156,7 +163,7 @@ export function searchProximity(options: ProximityOptions): ProximityResult {
     const byFuel = groupByFuel(withinRadius, fuelNames, limitPerFuel, sort, order);
     lastResult = { effectiveRadiusKm: radius, byFuel, withinRadius };
 
-    const satisfied = fuelNames.every((name) => (byFuel.get(name)?.length ?? 0) >= limitPerFuel);
+    const satisfied = fuelNames.every((name) => (byFuel.get(name)?.length ?? 0) >= widenThreshold);
     if (satisfied) return lastResult;
   }
 

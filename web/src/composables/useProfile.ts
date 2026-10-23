@@ -2,7 +2,9 @@ import { ref, watch } from "vue";
 
 import { readJson, writeJson } from "../lib/storage";
 
-export type SortMode = "distance" | "price" | "effective_price";
+// The dashboard has one price order: the lowest price on the card (after
+// discounts). "price" keeps the stored key; the request asks for effective.
+export type SortMode = "distance" | "price";
 export type SortOrder = "asc" | "desc";
 export type ResultLimit = number | "all";
 
@@ -11,6 +13,8 @@ export interface Profile {
   fuels: string[];
   cards: string[];
   services: string[];
+  /** False until the dashboard has seeded cards/services from the catalogue. */
+  discountsInitialised: boolean;
   location: string;
   radiusKm: number;
   limit: ResultLimit;
@@ -19,18 +23,21 @@ export interface Profile {
   fillLitres: number;
 }
 
-const PROFILE_VERSION = 5;
+const PROFILE_VERSION = 6;
 
 const DEFAULTS: Profile = {
   version: PROFILE_VERSION,
   fuels: ["Gasóleo simples"],
   cards: [],
   services: [],
+  // Seeded with every card/app and service the catalogue knows about, so the
+  // first search already shows the best price the user can reach.
+  discountsInitialised: false,
   location: "",
   radiusKm: 15,
   // Every station inside the radius: the radius itself is the only cap.
   limit: "all",
-  // The main page opens ordered by price, cheapest first.
+  // The main page opens ordered by the lowest price, cheapest first.
   sort: "price",
   sortOrder: "asc",
   fillLitres: 50,
@@ -41,6 +48,9 @@ const initial: Profile = { ...DEFAULTS, ...stored };
 // The best-case/guaranteed filter is gone: cards show the best price plus
 // every remaining price. Drop the obsolete key instead of persisting it.
 delete (initial as Profile & { discountMode?: unknown }).discountMode;
+// Older builds stored a separate "effective price" order; there is now one
+// price order, so fold it into "price".
+if ((initial.sort as string) === "effective_price") initial.sort = "price";
 
 // Bumping this resets the stored display settings once, so everyone lands on
 // the current defaults instead of ones inherited from an older build. Cards,

@@ -8,7 +8,7 @@ describe("nextSortState", () => {
       sort: "price",
       sortOrder: "asc",
     });
-    expect(nextSortState({ sort: "effective_price", sortOrder: "desc" }, "distance")).toEqual({
+    expect(nextSortState({ sort: "price", sortOrder: "desc" }, "distance")).toEqual({
       sort: "distance",
       sortOrder: "asc",
     });
@@ -19,7 +19,7 @@ describe("nextSortState", () => {
       sort: "price",
       sortOrder: "asc",
     });
-    expect(nextSortState({ sort: "effective_price", sortOrder: "desc" }, "price")).toEqual({
+    expect(nextSortState({ sort: "distance", sortOrder: "desc" }, "price")).toEqual({
       sort: "price",
       sortOrder: "asc",
     });

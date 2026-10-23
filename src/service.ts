@@ -589,7 +589,10 @@ export async function findStations(env: Env, args: FindStationsArgs): Promise<Fi
       radiusKm,
       maxRadiusKm,
       // Sorting by effective price needs a wider pool to sort through.
-      limitPerFuel: wantsEffectiveSort && !everyStation ? Math.min(100, limit * 3) : limit,
+      // Effective-price sorting ranks every station in the radius; the
+      // requested limit only decides when the radius is wide enough.
+      limitPerFuel: wantsEffectiveSort ? Number.POSITIVE_INFINITY : limit,
+      widenTo: everyStation ? Number.POSITIVE_INFINITY : limit,
       sort: wantsEffectiveSort ? "distance" : sort,
       order,
     });
@@ -694,11 +697,8 @@ export async function findStations(env: Env, args: FindStationsArgs): Promise<Fi
     const unit = fuel.unit;
     const rowsForFuel = regionRows.filter((row) => normalizeText(row.fuel) === normalizeText(fuel.name));
     // Without a reference point, distance ranking is meaningless.
-    const pool = sortByPrice(
-      rowsForFuel,
-      wantsEffectiveSort && !everyStation ? Math.min(100, limit * 3) : limit,
-      order,
-    );
+    // Effective-price ranking needs every row of the fuel, not a base-price cut.
+    const pool = sortByPrice(rowsForFuel, wantsEffectiveSort ? Number.POSITIVE_INFINITY : limit, order);
     const entries = pool.map((row) => stationEntry(discountContext, row, unit));
     const stations = (
       wantsEffectiveSort

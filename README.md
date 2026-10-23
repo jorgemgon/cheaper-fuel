@@ -37,12 +37,14 @@ A Vue 3 PWA served from the same Worker (`/`), designed phone-first for use at t
 
 - **Explorar** — asks for your location (one tap) or takes a concelho/postcode, then shows the nearest
   stations on a **Leaflet map** with markers colour-coded by *effective price* after discounts,
-  synchronised with the result list. It opens cheapest first (price ascending) and keeps that order
-  when you use your location. Every station inside the chosen radius is listed by default;
+  synchronised with the result list. It opens with the lowest price first and keeps that order when
+  you use your location. Every station inside the chosen radius is listed by default;
   `Resultados` can cap the list (10/20/50/100) for a slow connection, and the header says
-  `20 de 84 postos` whenever a cap truncates what the radius actually holds. Each card leads with the
-  best price after discounts and lists the remaining prices — the guaranteed slice, the base price and
-  any other card/app you hold — so no price is hidden behind a mode switch. Selecting several fuels
+  `20 de 84 postos` whenever a cap truncates what the radius actually holds. Every card/app and
+  service starts selected, so the first search already reflects every discount the catalogue knows;
+  each card leads with the best price after discounts and lists the remaining prices — the guaranteed
+  slice, the base price and any other programme the caller qualifies for — so no price is hidden
+  behind a mode switch. Selecting several fuels
   puts the cards in one collapsible section per fuel (with its own count, and `20 de 84` when the
   results limit truncates it). Fuel filter chips and those section headers share an identity colour —
   diesel yellow, petrol lime green, GPL blue, specials in the same family — while the map keeps its
@@ -84,8 +86,9 @@ MCP tools.
 List parameters accept either comma-separated values (`?fuels=diesel,95`) or repeated keys. Endpoints
 that return discount descriptions accept `lang=en` (default) or `lang=pt`; the dashboard asks for `pt`.
 `/api/stations` also takes `sort` (`distance`, `price` or `effective_price`) and `sort_order`
-(`asc` by default, `desc` for dearest first — the dashboard opens with `price` / `asc`). Its `limit`
-accepts a count (1–100 per fuel) or `all` for every station inside the radius; the dashboard sends
+(`asc` by default, `desc` for dearest first). `effective_price` ranks every station in the radius by
+the lowest price after discounts, which is what the dashboard's single `Preço` order asks for; its
+`limit` accepts a count (1–100 per fuel) or `all` for every station inside the radius, and it sends
 `limit=all` unless `Resultados` narrows it.
 Errors are `{ "error": { "code", "message", "hint?" } }` with 400 for validation, 404 for an unknown
 station, 422 for coordinates outside mainland Portugal, 502 for upstream failures and 503 when the

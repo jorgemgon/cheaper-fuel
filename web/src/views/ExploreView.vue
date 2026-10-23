@@ -15,7 +15,7 @@ import MapPanel from "../components/MapPanel.vue";
 import StationCard from "../components/StationCard.vue";
 import { useGeolocation } from "../composables/useGeolocation";
 import { useProfile, type ResultLimit, type SortMode } from "../composables/useProfile";
-import { buildProfileOptions } from "../lib/discount-labels";
+import { allProfileKeys, buildProfileOptions } from "../lib/discount-labels";
 import { fuelColor } from "../lib/fuel-colors";
 import { formatDate, formatRelativeTime } from "../lib/format";
 import { buildFuelGroups, fuelGroupCount } from "../lib/fuel-groups";
@@ -106,7 +106,6 @@ const limitNotice = computed(() =>
 const sortOptions: Array<{ key: SortMode; label: string }> = [
   { key: "distance", label: "Distância" },
   { key: "price", label: "Preço" },
-  { key: "effective_price", label: "Preço efetivo" },
 ];
 
 function setSort(key: SortMode) {
@@ -122,7 +121,9 @@ function buildQuery(): StationQuery | null {
   const base: StationQuery = {
     fuels: profile.value.fuels,
     limit: profile.value.limit,
-    sort: profile.value.sort,
+    // The card's headline is the lowest price after discounts, so price order
+    // must rank by that same price, not the undiscounted one.
+    sort: profile.value.sort === "distance" ? "distance" : "effective_price",
     sort_order: profile.value.sortOrder,
     radius_km: profile.value.radiusKm,
     cards: profile.value.cards,
@@ -269,6 +270,17 @@ onMounted(async () => {
     programmes.value = discounts.result.programs;
     if (profile.value.fuels.length === 0 && metaResult.defaults.fuels.length > 0) {
       profile.value.fuels = metaResult.defaults.fuels;
+    }
+    // Start with every card/app and service selected so the first search
+    // already shows the best price the user can reach. Applied once; a later
+    // manual selection is respected.
+    if (!profile.value.discountsInitialised) {
+      const all = allProfileKeys(profileOptions.value);
+      if (all.cards.length + all.services.length > 0) {
+        profile.value.cards = all.cards;
+        profile.value.services = all.services;
+        profile.value.discountsInitialised = true;
+      }
     }
   } catch {
     // Offline first load: the controls still work with the persisted profile.
