@@ -120,11 +120,11 @@ onMounted(async () => {
       </div>
 
       <div class="card stack">
-        <h2>Desconto observado por dia</h2>
+        <h2>Desconto médio praticado no país (DGEG)</h2>
         <DiscountBarChart :points="series.points" />
         <p class="tiny muted">
-          Diferença entre a média sem desconto e a média praticada. É nacional e inclui cartões de frota e
-          semelhantes.
+          Média nacional (inclui cartões de frota e semelhantes), não o teu desconto: não é somada aos descontos
+          do catálogo.
         </p>
       </div>
 
