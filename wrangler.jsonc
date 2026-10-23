@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cheaper-fuel",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "DGEG_BASE_URL": "https://precoscombustiveis.dgeg.gov.pt/api/PrecoComb",
+    "CACHE_TTL_SECONDS": "86400",
+    "USER_AGENT": "cheaper-fuel-mcp/0.1 (+https://github.com/jorgemgon/cheaper-fuel)"
+  }
+}
