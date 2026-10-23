@@ -61,6 +61,22 @@ const covered = computed(() => result.value?.result.municipalities_covered ?? []
 const effectiveRadius = computed(() => result.value?.result.effective_radius_km ?? null);
 const discountsUnavailable = computed(() => result.value?.discounts_unavailable ?? null);
 
+// Never let the per-fuel cap stay invisible: a station can be found in the
+// radius and still not be returned because of the results limit.
+const truncatedFuels = computed(() =>
+  (result.value?.result.fuels ?? []).filter((fuel) => fuel.stations_found > fuel.stations.length),
+);
+const countLabel = computed(() => {
+  const fuels = result.value?.result.fuels ?? [];
+  const only = fuels.length === 1 ? fuels[0] : null;
+  if (only && only.stations_found > only.stations.length) {
+    return `${only.stations.length} de ${only.stations_found} postos`;
+  }
+  return `${stations.value.length} postos`;
+});
+
+const LIMIT_OPTIONS = [10, 20, 50, 100];
+
 const sortOptions: Array<{ key: SortMode; label: string }> = [
   { key: "distance", label: "Distância" },
   { key: "price", label: "Preço" },
@@ -316,6 +332,13 @@ async function runInitialSearch(): Promise<void> {
           <input v-model.number="profile.radiusKm" type="range" min="2" max="60" step="1" />
         </div>
 
+        <div class="field" style="min-width: 5.5rem">
+          <label for="results-limit">Resultados</label>
+          <select id="results-limit" v-model.number="profile.limit" class="select">
+            <option v-for="value in LIMIT_OPTIONS" :key="value" :value="value">{{ value }}</option>
+          </select>
+        </div>
+
         <div class="field">
           <label>Ordenar</label>
           <div class="tabs">
@@ -365,11 +388,18 @@ async function runInitialSearch(): Promise<void> {
       <div class="stack">
         <div class="row" style="justify-content: space-between">
           <h2>
-            {{ stations.length }} postos
+            {{ countLabel }}
             <template v-if="covered.length > 0"> · {{ covered.length }} concelhos</template>
           </h2>
           <span v-if="effectiveRadius" class="badge">raio {{ effectiveRadius }} km</span>
         </div>
+
+        <p v-if="truncatedFuels.length > 0" class="tiny muted">
+          <template v-if="truncatedFuels.length > 1">
+            {{ truncatedFuels.map((fuel) => `${fuel.fuel}: ${fuel.stations.length} de ${fuel.stations_found} postos`).join(" · ") }}.
+          </template>
+          Limite de {{ profile.limit }} por combustível — aumenta em "Resultados" para veres o resto.
+        </p>
 
         <p v-if="covered.length > 0" class="tiny muted">
           {{ covered.map((entry) => entry.municipality).join(", ") }}

@@ -20,7 +20,7 @@ export interface Profile {
   fillLitres: number;
 }
 
-const PROFILE_VERSION = 2;
+const PROFILE_VERSION = 3;
 
 const DEFAULTS: Profile = {
   version: PROFILE_VERSION,
@@ -29,7 +29,7 @@ const DEFAULTS: Profile = {
   services: [],
   location: "",
   radiusKm: 15,
-  limit: 5,
+  limit: 20,
   // The main page opens ordered by price, cheapest first.
   sort: "price",
   sortOrder: "asc",
@@ -40,12 +40,13 @@ const DEFAULTS: Profile = {
 const stored = readJson<Partial<Profile>>("profile", {});
 const initial: Profile = { ...DEFAULTS, ...stored };
 
-// Bumping this resets the stored ordering once, so everyone lands on the
-// current default instead of an order inherited from an older build. Cards,
-// services and location are preserved.
+// Bumping this resets the stored display settings once, so everyone lands on
+// the current defaults instead of ones inherited from an older build. Cards,
+// services, fuels and location are preserved.
 if ((stored.version ?? 1) < PROFILE_VERSION) {
   initial.sort = DEFAULTS.sort;
   initial.sortOrder = DEFAULTS.sortOrder;
+  initial.limit = DEFAULTS.limit;
 }
 initial.version = PROFILE_VERSION;
 
