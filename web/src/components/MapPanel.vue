@@ -14,11 +14,16 @@ import {
 
 const props = defineProps<{
   rows: StationFuelRow[];
-  userLocation?: { latitude: number; longitude: number } | null;
+  /** The active search point: the user's position or a place picked on the map. */
+  pin?: { latitude: number; longitude: number } | null;
 }>();
 
+const emit = defineEmits<{ pick: [point: { latitude: number; longitude: number }] }>();
+
 const container = ref<HTMLElement | null>(null);
-const { init, setStations, setUser, invalidate, tileFailed } = useLeafletMap(container);
+const { init, setStations, setPin, invalidate, tileFailed } = useLeafletMap(container, {
+  onPick: (point) => emit("pick", point),
+});
 
 const groups = computed(() => groupRowsByStation(props.rows));
 
@@ -79,6 +84,7 @@ function sync(fit = true): void {
 
 onMounted(() => {
   init();
+  setPin(props.pin ?? null);
   sync(true);
 });
 
@@ -89,10 +95,8 @@ watch(
 );
 
 watch(
-  () => props.userLocation,
-  (value) => {
-    if (value) setUser(value.latitude, value.longitude);
-  },
+  () => props.pin,
+  (value) => setPin(value ?? null),
   { deep: true },
 );
 
@@ -109,6 +113,8 @@ watch(
     <div v-if="tileFailed" class="map-fallback" style="position: absolute; inset: 0">
       Mapa indisponível — não foi possível carregar os mosaicos. A lista de postos continua disponível.
     </div>
+
+    <p class="map-hint tiny">Clica no mapa ou arrasta o pino para escolher o local.</p>
 
     <div v-if="ramp.legend.length > 0" class="legend">
       <span v-for="entry in ramp.legend" :key="entry.label" class="row" style="gap: 0.25rem">

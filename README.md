@@ -46,7 +46,8 @@ A Vue 3 PWA served from the same Worker (`/`), designed phone-first for use at t
   puts the cards in one collapsible section per fuel (with its own count, and `20 de 84` when the
   results limit truncates it). Fuel filter chips and those section headers share an identity colour —
   diesel yellow, petrol lime green, GPL blue, specials in the same family — while the map keeps its
-  cheap → dear price colours.
+  cheap → dear price colours. The map carries a search pin: using your location drops it on your
+  position, and clicking the map or dragging the pin re-searches from that point.
 - **Mercado** — per-fuel min/average/median/max, spread, observed national discount and a comparison
   chart.
 - **Histórico** — daily national averages as **Chart.js** line and bar charts (with and without discount).

@@ -39,7 +39,7 @@ const result = ref<FindStationsResult | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const errorHint = ref<string | null>(null);
-const searchedFrom = ref<"geo" | "place" | null>(null);
+const searchedFrom = ref<"geo" | "place" | "picked" | null>(null);
 const searchedAt = ref<string | null>(null);
 
 const searchTimer = ref<ReturnType<typeof setTimeout> | null>(null);
@@ -130,7 +130,7 @@ function buildQuery(): StationQuery | null {
     fill_litres: profile.value.fillLitres,
   };
 
-  if (searchedFrom.value === "geo" && geoCoords.value) {
+  if (usesPoint.value && geoCoords.value) {
     return {
       ...base,
       latitude: geoCoords.value.latitude,
@@ -181,9 +181,22 @@ async function search(): Promise<void> {
   }
 }
 
+const usesPoint = computed(
+  () => searchedFrom.value === "geo" || searchedFrom.value === "picked",
+);
+// The pin is the active search point: your position, or the spot you picked.
+const mapPin = computed(() => (usesPoint.value ? geoCoords.value : null));
+
 function hasSearchContext(): boolean {
-  if (searchedFrom.value === "geo" && geoCoords.value) return true;
+  if (usesPoint.value && geoCoords.value) return true;
   return profile.value.location.trim().length > 0;
+}
+
+/** A map click or a dropped pin: search from that point instead of a name. */
+function pickPoint(point: { latitude: number; longitude: number }): void {
+  setCoords(point);
+  searchedFrom.value = "picked";
+  scheduleSearch();
 }
 
 function cancelScheduledSearch(): void {
@@ -280,7 +293,8 @@ async function runInitialSearch(): Promise<void> {
   }
   if (Number.isFinite(queryLat) && Number.isFinite(queryLon)) {
     setCoords({ latitude: queryLat, longitude: queryLon });
-    searchedFrom.value = "geo";
+    // Coordinates from a link are a chosen point, not the device position.
+    searchedFrom.value = "picked";
     await search();
     return;
   }
@@ -334,6 +348,10 @@ async function runInitialSearch(): Promise<void> {
       <p v-if="geoMessage" class="notice notice-warn tiny">{{ geoMessage }}</p>
       <p v-else-if="searchedFrom === 'geo' && geoCoords" class="tiny muted">
         A usar a tua localização ({{ geoCoords.latitude.toFixed(3) }}, {{ geoCoords.longitude.toFixed(3) }})
+        <template v-if="searchedAt"> · atualizado {{ formatRelativeTime(searchedAt) }}</template>
+      </p>
+      <p v-else-if="searchedFrom === 'picked' && geoCoords" class="tiny muted">
+        A procurar em {{ geoCoords.latitude.toFixed(3) }}, {{ geoCoords.longitude.toFixed(3) }}
         <template v-if="searchedAt"> · atualizado {{ formatRelativeTime(searchedAt) }}</template>
       </p>
 
@@ -403,7 +421,7 @@ async function runInitialSearch(): Promise<void> {
     </div>
 
     <div v-else-if="result" class="explore-layout">
-      <MapPanel :rows="stationRows" :user-location="searchedFrom === 'geo' ? geoCoords : null" />
+      <MapPanel :rows="stationRows" :pin="mapPin" @pick="pickPoint" />
 
       <div class="stack">
         <div class="row" style="justify-content: space-between">

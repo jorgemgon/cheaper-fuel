@@ -533,6 +533,31 @@ p {
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
 }
 
+/* Search pin: shows your position, and can be dragged to choose another spot. */
+.location-pin {
+  cursor: grab;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.55));
+}
+
+.location-pin:active {
+  cursor: grabbing;
+}
+
+.map-hint {
+  position: absolute;
+  z-index: 500;
+  top: 0.6rem;
+  right: 0.6rem;
+  margin: 0;
+  max-width: 13rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(11, 15, 20, 0.88);
+  color: var(--muted);
+  text-align: right;
+}
+
 .legend {
   position: absolute;
   z-index: 500;
