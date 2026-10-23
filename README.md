@@ -137,7 +137,7 @@ per-concelho or per-station history endpoint.
 npm install
 npm run dev          # wrangler dev on http://127.0.0.1:8787
 
-node test/smoke.mjs  # 12 end-to-end checks against the local worker
+node test/smoke.mjs  # 14 end-to-end checks against the local worker
 npm run typecheck
 npm test
 ```
