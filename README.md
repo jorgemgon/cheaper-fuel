@@ -66,7 +66,11 @@ A Vue 3 PWA served from the same Worker (`/`), designed phone-first for use at t
   one ramp. The map carries a search pin: using your location drops it on your
   position, and clicking the map or dragging the pin re-searches from that point. The last search — a
   place name, the geolocation position or a picked point — is restored on reload, so a refresh keeps
-  the same list on screen. The shell adapts to three sizes: wide desktops pin a filter rail and a tall
+  the same list on screen. Tap the star on a station card to keep it on this device; as soon as there
+  is at least one favourite, the page opens on the `Favoritos` tab (with `Perto de ti` beside it),
+  refreshes saved prices from the station endpoint and plots them on the map. Favourites are local
+  only, are not filtered by the search controls, and disappear with the browser's site data.
+  The shell adapts to three sizes: wide desktops pin a filter rail and a tall
   map beside the results, mid-size desktops keep a collapsible filter bar over a map/results split,
   and phones use a `Filtros` drawer with the fuel carousel.
 - **Mercado** — per-fuel min/average/median/max, spread, observed national discount and a comparison

@@ -3,6 +3,7 @@ import type { StationInfo } from "@contracts";
 import { computed } from "vue";
 
 import type { QuantityUnit } from "../composables/useProfile";
+import { useFavorites } from "../composables/useFavorites";
 import { fillEstimate, unitSymbol } from "../lib/fill-costs";
 import { formatCents, formatKm, formatMoney, formatPrice, formatQuantity, formatRelativeTime } from "../lib/format";
 import { bestPriceDisplay, remainingPriceOptions } from "../lib/price-options";
@@ -18,8 +19,18 @@ const props = defineProps<{
   station: StationInfo;
   quantity: number;
   quantityUnit: QuantityUnit;
+  /** Fuel this card represents; saved with the favourite. */
+  fuel: string;
+  /** Show the fuel badge (the favourites list is not split by fuel). */
+  showFuel?: boolean;
 }>();
 const emit = defineEmits<{ focus: [id: number] }>();
+const { isFavorite, toggle } = useFavorites();
+const favorite = computed(() => isFavorite(props.station.id));
+
+function toggleFavorite(): void {
+  toggle(props.station, props.fuel);
+}
 
 const bestPrice = computed(() => bestPriceDisplay(props.station));
 const priceOptions = computed(() => remainingPriceOptions(props.station));
@@ -71,7 +82,19 @@ const tierRows = computed(() =>
         <span v-if="props.station.distance_km !== undefined" class="badge">
           {{ formatKm(props.station.distance_km) }}
         </span>
+        <span v-if="props.showFuel && props.fuel" class="badge">{{ props.fuel }}</span>
         <span v-if="props.station.brand" class="badge">{{ props.station.brand }}</span>
+        <button
+          type="button"
+          class="fav-btn"
+          :class="{ 'is-on': favorite }"
+          :aria-pressed="favorite"
+          :aria-label="favorite ? 'Remover dos favoritos' : 'Guardar nos favoritos'"
+          :title="favorite ? 'Remover dos favoritos' : 'Guardar nos favoritos'"
+          @click.stop="toggleFavorite"
+        >
+          {{ favorite ? "★" : "☆" }}
+        </button>
       </div>
     </div>
 
