@@ -110,8 +110,9 @@ Six tools, deliberately few, so an agent does not wander between lookups.
 - **No prerequisite lookups.** Every tool accepts human names — `"diesel"`, `"gasóleo"`, `"95"`,
   `"gpl"`, `"Leiria"`, `"2400-193"`, `"galp"` — and resolves them internally. Numeric ids are
   optional.
-- **No coordinate requirement.** `location` takes a city, a locality, a postal code (`2400-193` or
-  `2400`), or `"lat,lon"`.
+- **No coordinate requirement.** `location` takes a city, a locality, a postal code (`2400-193`,
+  `2400193`, `2400`), or `"lat,lon"`. A full code DGEG never published keeps working: it degrades to
+  its 4-digit prefix, so `2430-304` resolves to the 2430 area (Marinha Grande) instead of failing.
 - **One call returns everything**: price, formatted display price, address, coordinates, distance,
   map link and freshness.
 - **Self-widening radius.** If a small concelho has too few stations, `find_stations` grows the radius
