@@ -42,6 +42,7 @@ const searchedAt = ref<string | null>(null);
 const searchTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 const autoSearchEnabled = ref(false);
 let searchSequence = 0;
+let lastQueryKey: string | null = null;
 
 const AUTO_SEARCH_DELAY_MS = 350;
 
@@ -134,6 +135,7 @@ async function search(): Promise<void> {
   }
 
   const sequence = ++searchSequence;
+  lastQueryKey = JSON.stringify(query);
   loading.value = true;
   error.value = null;
   errorHint.value = null;
@@ -180,6 +182,10 @@ function cancelScheduledSearch(): void {
  */
 function scheduleSearch(): void {
   if (!autoSearchEnabled.value || !hasSearchContext()) return;
+  const query = buildQuery();
+  // A filter change that lands on the query already being fetched (using your
+  // location also switches the sort, for instance) needs no second request.
+  if (query && JSON.stringify(query) === lastQueryKey) return;
   cancelScheduledSearch();
   searchTimer.value = setTimeout(() => {
     searchTimer.value = null;
