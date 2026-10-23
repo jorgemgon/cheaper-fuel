@@ -72,7 +72,8 @@ export const findStationsInput = z.object({
     .optional()
     .describe(
       'Services or contracts held, e.g. ["galp_energy", "nos_package"], or for Repsol tiers ' +
-        '["repsol_electricity", "repsol_gas"]. They satisfy requirements and set the tier.',
+        '["repsol_electricity", "repsol_gas"]. They satisfy requirements and set the tier; a programme ' +
+        "only counts services from its own supplier/partners.",
     ),
   discount_mode: z
     .enum(["best_case", "guaranteed"])

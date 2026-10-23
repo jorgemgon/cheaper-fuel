@@ -355,6 +355,43 @@ function tierBuckets(rows: Discount[]): Discount[][] {
 }
 
 /**
+ * Services that count towards a programme's tier: the ones it explicitly
+ * requires, plus services branded by its supplier/partners. COMBINA counts
+ * Galp/NOS services, not every service the caller happens to hold (a Repsol
+ * contract must not unlock a COMBINA tier).
+ */
+function countProgrammeServices(rows: readonly Discount[], profile: DiscountProfile): number {
+  const scope = new Set<string>();
+  const required = new Set<string>();
+
+  for (const row of rows) {
+    for (const value of [row.supplier, ...row.partners]) {
+      const token = normalizeText(value);
+      if (token) scope.add(token);
+    }
+    for (const requirement of row.requires) {
+      const key = normalizeText(requirement);
+      if (key) required.add(key);
+    }
+  }
+
+  let count = 0;
+  for (const service of new Set(profile.services.map(normalizeText))) {
+    if (required.has(service)) {
+      count += 1;
+      continue;
+    }
+    for (const token of scope) {
+      if (service === token || service.startsWith(`${token} `)) {
+        count += 1;
+        break;
+      }
+    }
+  }
+  return count;
+}
+
+/**
  * Resolve the discounts that apply to one station for one caller profile.
  * Only high-confidence, quantified benefits are ever applied to the price.
  */
@@ -386,9 +423,8 @@ export function resolveForStation(
     byProgram.set(discount.programId, bucket);
   }
 
-  const servicesHeld = profile.services.length;
-
   for (const rows of byProgram.values()) {
+    const servicesHeld = countProgrammeServices(rows, profile);
     const quantified = rows.filter(isQuantified);
 
     if (quantified.length === 0) {

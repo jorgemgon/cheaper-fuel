@@ -51,7 +51,9 @@ A Vue 3 PWA served from the same Worker (`/`), designed phone-first for use at t
   (`50 L custam 91,00 € · poupas 15,00 €`), and every
   discounted card lists its programme's full level ladder — COMBINA's 1 / 2 / 3+ services, Repsol's
   base / electricity / gas, or a flat per-fill coupon — with each level's resulting price and the spend
-  for the chosen quantity, and the active level highlighted.
+  for the chosen quantity, and the active level highlighted. A programme only counts services from its
+  own supplier/partners (COMBINA counts Galp/NOS contracts, Repsol counts Repsol electricity/gas), so
+  declaring an unrelated contract never unlocks a higher tier.
   Filters only restrict when they have a value: clearing the fuel chips requests every fuel, clearing
   cards/services goes back to list prices. Fuel, card and service groups carry `Tudo` (select every
   option) and `Limpar` actions, and each filter, the location and the quantity have a clear action.

@@ -127,10 +127,89 @@ describe("resolveForStation", () => {
 
     const threeServices = sanitizeProfile({
       cards: [],
-      services: ["galp_energy", "nos_package", "solar"],
+      services: ["galp_energy", "galp_solar", "galp_insurance"],
     });
     const top = resolveForStation(rows, galpStation, "litro", threeServices, TODAY);
     expect(top.applied?.tierId).toBe("t3");
+  });
+
+  it("counts only services belonging to the programme, not every service held", () => {
+    const rows = [
+      makeDiscount({
+        id: "combina-1-app",
+        programId: "galp-combina",
+        programTitle: "COMBINA",
+        tierId: "combina-1",
+        minServices: 1,
+        supplier: "GALP",
+        partners: ["CONTINENTE", "NOS"],
+        requires: ["continente_card", "mundo_galp_app"],
+        value: 8,
+      }),
+      makeDiscount({
+        id: "combina-2-app",
+        programId: "galp-combina",
+        programTitle: "COMBINA",
+        tierId: "combina-2",
+        minServices: 2,
+        supplier: "GALP",
+        partners: ["CONTINENTE", "NOS"],
+        requires: ["continente_card", "mundo_galp_app"],
+        value: 10,
+      }),
+      makeDiscount({
+        id: "combina-3-app",
+        programId: "galp-combina",
+        programTitle: "COMBINA",
+        tierId: "combina-3",
+        minServices: 3,
+        supplier: "GALP",
+        partners: ["CONTINENTE", "NOS"],
+        requires: ["continente_card", "mundo_galp_app"],
+        value: 10,
+      }),
+    ];
+    const cards = ["continente_card", "mundo_galp_app"];
+
+    const one = resolveForStation(
+      rows,
+      galpStation,
+      "litro",
+      sanitizeProfile({ cards, services: ["galp_energy"] }),
+      TODAY,
+    );
+    expect(one.applied?.tierId).toBe("combina-1");
+
+    const unrelated = resolveForStation(
+      rows,
+      galpStation,
+      "litro",
+      sanitizeProfile({ cards, services: ["repsol_gas"] }),
+      TODAY,
+    );
+    expect(unrelated.applied).toBeNull();
+    expect(unrelated.locked[0]?.missingServices).toBe(1);
+
+    const two = resolveForStation(
+      rows,
+      galpStation,
+      "litro",
+      sanitizeProfile({ cards, services: ["galp_energy", "nos_package"] }),
+      TODAY,
+    );
+    expect(two.applied?.tierId).toBe("combina-2");
+
+    const stillTwo = resolveForStation(
+      rows,
+      galpStation,
+      "litro",
+      sanitizeProfile({
+        cards,
+        services: ["galp_energy", "nos_package", "repsol_electricity", "repsol_gas"],
+      }),
+      TODAY,
+    );
+    expect(stillTwo.applied?.tierId).toBe("combina-2");
   });
 
   it("reports missing cards instead of silently dropping the programme", () => {
