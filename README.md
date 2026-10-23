@@ -47,9 +47,13 @@ A Vue 3 PWA served from the same Worker (`/`), designed phone-first for use at t
 Installable (manifest + service worker) and usable offline: the last search and previously viewed map
 tiles are cached. Location is opt-in, stored only on the device.
 
-Map tiles come from a configurable provider (`VITE_TILE_URL` / `VITE_TILE_ATTRIBUTION`, default a dark
-CARTO basemap with attribution). DGEG does not publish map tiles: its ArcGIS `PostosAbastecimento`
-service is query-only with no price fields, so the map uses our own snapshot as the data source.
+Map tiles come from a configurable provider (`VITE_TILE_URL` / `VITE_TILE_ATTRIBUTION`). The default is
+**OpenStreetMap standard** tiles — no API key — inverted with CSS into a dark map. The earlier CARTO
+default stopped working anonymously (their tiles now render "API KEY REQUIRED"), so a keyed provider such
+as CARTO, Stadia or MapTiler can be supplied through those variables.
+
+DGEG does not publish map tiles: its ArcGIS `PostosAbastecimento` service is query-only with no price
+fields, so the map uses our own snapshot as the data source.
 
 ## REST API
 

@@ -13,10 +13,12 @@ export interface MapPoint {
   popupHtml: string;
 }
 
-const DEFAULT_TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+// OSM standard tiles need no API key. They are light by default, so the map
+// pane is inverted with CSS (see .leaflet-tile in styles.css) to match the app.
+// Set VITE_TILE_URL to use a keyed dark provider (CARTO, Stadia, MapTiler, ...).
+const DEFAULT_TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const DEFAULT_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> ' +
-  '&copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>';
+  '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
 
 export function useLeafletMap(container: Ref<HTMLElement | null>) {
   let map: L.Map | null = null;
@@ -41,7 +43,6 @@ export function useLeafletMap(container: Ref<HTMLElement | null>) {
     const tiles = L.tileLayer(tileUrl, {
       attribution,
       maxZoom: 19,
-      subdomains: "abcd",
       detectRetina: true,
     });
 

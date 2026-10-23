@@ -6,6 +6,7 @@ import type {
   StationInfo,
 } from "@contracts";
 import { computed, onMounted, ref } from "vue";
+import { useRoute } from "vue-router";
 
 import { api, ApiError, type StationQuery } from "../api";
 import ChipGroup from "../components/ChipGroup.vue";
@@ -19,6 +20,7 @@ import { formatDate, formatRelativeTime } from "../lib/format";
 import { GEO_CACHE_TTL_MS, isFresh } from "../lib/geo";
 import { readJson, writeJson } from "../lib/storage";
 
+const route = useRoute();
 const { profile, toggleFuel, toggleCard, toggleService } = useProfile();
 const {
   status: geoStatus,
@@ -155,6 +157,24 @@ onMounted(async () => {
     // Offline first load: the controls still work with the persisted profile.
   }
 
+  // Shareable deep links: /?location=Leiria or /?lat=39.74&lon=-8.81
+  const queryLocation = typeof route.query.location === "string" ? route.query.location : null;
+  const queryLat = Number(route.query.lat);
+  const queryLon = Number(route.query.lon);
+
+  if (queryLocation && queryLocation.trim().length > 0) {
+    profile.value.location = queryLocation.trim();
+    searchedFrom.value = "place";
+    await search();
+    return;
+  }
+  if (Number.isFinite(queryLat) && Number.isFinite(queryLon)) {
+    setCoords({ latitude: queryLat, longitude: queryLon });
+    searchedFrom.value = "geo";
+    await search();
+    return;
+  }
+
   const consent = readJson<string | null>("geo-consent", null);
   const cached = readJson<{ latitude: number; longitude: number; at: number } | null>(
     "geo-position",
@@ -189,7 +209,7 @@ onMounted(async () => {
           {{ geoStatus === "requesting" ? "A localizar…" : "Usar a minha localização" }}
         </button>
 
-        <form class="row" style="flex: 1; min-width: 15rem" @submit.prevent="searchByPlace">
+        <form class="search-form" @submit.prevent="searchByPlace">
           <input
             v-model="profile.location"
             class="input"

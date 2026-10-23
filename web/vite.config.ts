@@ -57,7 +57,7 @@ export default defineConfig({
             options: { cacheName: "cheaper-fuel-tiles", ...TILE_CACHE },
           },
           {
-            urlPattern: /^https:\/\/[a-z]\.tile\.openstreetmap\.org\//i,
+            urlPattern: /^https:\/\/([a-z]\.)?tile\.openstreetmap\.org\//i,
             handler: "CacheFirst",
             options: { cacheName: "cheaper-fuel-osm", ...TILE_CACHE },
           },
