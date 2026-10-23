@@ -5,7 +5,7 @@ import type {
   MetaResult,
   StationInfo,
 } from "@contracts";
-import { computed, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 
 import { api, ApiError, type StationQuery } from "../api";
@@ -38,6 +38,12 @@ const error = ref<string | null>(null);
 const errorHint = ref<string | null>(null);
 const searchedFrom = ref<"geo" | "place" | null>(null);
 const searchedAt = ref<string | null>(null);
+
+const searchTimer = ref<ReturnType<typeof setTimeout> | null>(null);
+const autoSearchEnabled = ref(false);
+let searchSequence = 0;
+
+const AUTO_SEARCH_DELAY_MS = 350;
 
 const fuelOptions = computed(() =>
   (meta.value?.fuels ?? []).map((fuel) => ({ key: fuel.name, label: fuel.name })),
@@ -103,6 +109,7 @@ function buildQuery(): StationQuery | null {
 }
 
 async function search(): Promise<void> {
+  cancelScheduledSearch();
   const query = buildQuery();
   if (!query) {
     error.value = "Escolhe um local ou usa a tua localização para começar.";
@@ -110,14 +117,19 @@ async function search(): Promise<void> {
     return;
   }
 
+  const sequence = ++searchSequence;
   loading.value = true;
   error.value = null;
   errorHint.value = null;
 
   try {
-    result.value = await api.stations(query);
+    const payload = await api.stations(query);
+    // A slower earlier request must not overwrite a newer answer.
+    if (sequence !== searchSequence) return;
+    result.value = payload;
     searchedAt.value = new Date().toISOString();
   } catch (caught) {
+    if (sequence !== searchSequence) return;
     result.value = null;
     if (caught instanceof ApiError) {
       error.value = caught.message;
@@ -127,9 +139,52 @@ async function search(): Promise<void> {
       error.value = "Não foi possível obter os preços. Verifica a ligação.";
     }
   } finally {
-    loading.value = false;
+    if (sequence === searchSequence) loading.value = false;
   }
 }
+
+function hasSearchContext(): boolean {
+  if (searchedFrom.value === "geo" && geoCoords.value) return true;
+  return profile.value.location.trim().length > 0;
+}
+
+function cancelScheduledSearch(): void {
+  if (searchTimer.value !== null) {
+    clearTimeout(searchTimer.value);
+    searchTimer.value = null;
+  }
+}
+
+/**
+ * Filters re-run the search on their own, debounced so dragging the radius
+ * slider or ticking several chips costs one request. The location text field
+ * is deliberately not watched: it stays submit-only (Enter / "Procurar").
+ */
+function scheduleSearch(): void {
+  if (!autoSearchEnabled.value || !hasSearchContext()) return;
+  cancelScheduledSearch();
+  searchTimer.value = setTimeout(() => {
+    searchTimer.value = null;
+    void search();
+  }, AUTO_SEARCH_DELAY_MS);
+}
+
+watch(
+  () => [
+    profile.value.fuels,
+    profile.value.cards,
+    profile.value.services,
+    profile.value.radiusKm,
+    profile.value.sort,
+    profile.value.sortOrder,
+    profile.value.discountMode,
+    profile.value.limit,
+  ],
+  scheduleSearch,
+  { deep: true },
+);
+
+onBeforeUnmount(cancelScheduledSearch);
 
 async function useMyLocation(): Promise<void> {
   const coords = await locate();
@@ -164,6 +219,12 @@ onMounted(async () => {
     // Offline first load: the controls still work with the persisted profile.
   }
 
+  await runInitialSearch();
+  // Only after the first search may filter changes trigger their own requests.
+  autoSearchEnabled.value = true;
+});
+
+async function runInitialSearch(): Promise<void> {
   // Shareable deep links: /?location=Leiria or /?lat=39.74&lon=-8.81
   const queryLocation = typeof route.query.location === "string" ? route.query.location : null;
   const queryLat = Number(route.query.lat);
@@ -192,7 +253,7 @@ onMounted(async () => {
     searchedFrom.value = "geo";
     await search();
   }
-});
+}
 </script>
 
 <template>
