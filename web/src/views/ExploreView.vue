@@ -8,7 +8,7 @@ import type {
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 
-import { api, ApiError, type StationQuery } from "../api";
+import { api, ApiError, localizedApiMessage, type StationQuery } from "../api";
 import ChipGroup from "../components/ChipGroup.vue";
 import EmptyState from "../components/EmptyState.vue";
 import MapPanel from "../components/MapPanel.vue";
@@ -150,7 +150,9 @@ async function search(): Promise<void> {
     if (caught instanceof ApiError) {
       error.value = caught.message;
       const details = caught.details as { hint?: string } | undefined;
-      errorHint.value = details?.hint ?? null;
+      // A translated message already explains the problem; the server's
+      // English hint would only repeat it in the wrong language.
+      errorHint.value = localizedApiMessage(caught.code) ? null : (details?.hint ?? null);
     } else {
       error.value = "Não foi possível obter os preços. Verifica a ligação.";
     }
@@ -422,8 +424,9 @@ async function runInitialSearch(): Promise<void> {
       </div>
     </div>
 
+    <!-- An error banner already explains the state; hide the prompt asking to start. -->
     <EmptyState
-      v-else
+      v-else-if="!error"
       title="Começa por um local"
       message="Usa a tua localização para ver os postos mais próximos, ou escreve um concelho ou código postal."
     />

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { api, ApiError, buildUrl } from "./api";
+import { api, ApiError, buildUrl, localizedApiMessage } from "./api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -61,5 +61,50 @@ describe("api client", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("<html>oops</html>", { status: 502 })));
 
     await expect(api.meta()).rejects.toBeInstanceOf(ApiError);
+  });
+
+  it("translates known server error codes into pt-PT", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                code: "unknown_location",
+                message: 'No Portuguese mainland place matched "2430-304".',
+              },
+            }),
+            { status: 400 },
+          ),
+      ),
+    );
+
+    await expect(api.stations({ location: "2430-304" })).rejects.toMatchObject({
+      code: "unknown_location",
+      message: expect.stringContaining("Portugal continental"),
+    });
+  });
+
+  it("keeps the server message for codes it does not know", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ error: { code: "teapot", message: "Server says no." } }), {
+            status: 418,
+          }),
+      ),
+    );
+
+    await expect(api.meta()).rejects.toMatchObject({
+      code: "teapot",
+      message: "Server says no.",
+    });
+  });
+
+  it("exposes the localized copy for a code, and null when unknown", () => {
+    expect(localizedApiMessage("unsupported_region")).toMatch(/Açores/);
+    expect(localizedApiMessage("teapot")).toBeNull();
   });
 });

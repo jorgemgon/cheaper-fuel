@@ -22,6 +22,40 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * pt-PT copy for the API's machine-readable error codes. Server messages
+ * describe the MCP contract in English, but the dashboard speaks Portuguese,
+ * so known codes are translated here and anything unknown falls back to the
+ * server text.
+ */
+const ERROR_MESSAGES_PT: Record<string, string> = {
+  location_not_found:
+    "Não encontrámos esse local em Portugal continental. Escreve um concelho (por exemplo «Leiria») ou um código postal.",
+  unknown_location:
+    "Não encontrámos esse local em Portugal continental. Escreve um concelho (por exemplo «Leiria») ou um código postal.",
+  ambiguous_location:
+    "Esse local existe em mais do que um concelho. Acrescenta o concelho, por exemplo «Santa Catarina, Caldas da Rainha».",
+  unsupported_region:
+    "A DGEG só publica preços para Portugal continental: os Açores e a Madeira não estão cobertos.",
+  unknown_fuel: "Combustível desconhecido. Escolhe outro combustível na lista.",
+  unknown_brand: "Marca desconhecida. Retira o filtro de marca.",
+  unknown_district: "Distrito desconhecido.",
+  unknown_municipality: "Concelho desconhecido.",
+  validation_error: "Pedido inválido. Confirma o local e os filtros e tenta de novo.",
+  upstream_unavailable: "A DGEG não está a responder neste momento. Tenta daqui a pouco.",
+  upstream_error: "A DGEG devolveu um erro. Tenta daqui a pouco.",
+  timeout: "A DGEG demorou demasiado a responder. Tenta daqui a pouco.",
+  discounts_unavailable:
+    "O registo de descontos está indisponível — os preços base continuam corretos.",
+  station_not_found: "Posto não encontrado.",
+  internal_error: "Erro inesperado do nosso lado. Tenta daqui a pouco.",
+};
+
+/** Portuguese copy for a known error code, or null when the code is unknown. */
+export function localizedApiMessage(code: string): string | null {
+  return ERROR_MESSAGES_PT[code] ?? null;
+}
+
 export type QueryValue = string | number | boolean | undefined | null | Array<string | number>;
 
 export function buildUrl(path: string, params: Record<string, QueryValue> = {}): string {
@@ -55,7 +89,10 @@ async function request<T>(path: string, params: Record<string, QueryValue> = {})
       payload = null;
     }
     const code = payload?.error?.code ?? "http_error";
-    const message = payload?.error?.message ?? `O pedido falhou (HTTP ${response.status}).`;
+    const message =
+      ERROR_MESSAGES_PT[code] ??
+      payload?.error?.message ??
+      `O pedido falhou (HTTP ${response.status}).`;
     throw new ApiError(response.status, code, message, payload?.error);
   }
 
