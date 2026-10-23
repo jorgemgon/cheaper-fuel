@@ -271,6 +271,74 @@ async function main() {
 
   await client.close();
 
+  // ---- REST API and dashboard shell -------------------------------------
+  const origin = new URL(url).origin;
+
+  const getJson = async (path) => {
+    const response = await fetch(origin + path);
+    let body = null;
+    try {
+      body = await response.json();
+    } catch {
+      body = null;
+    }
+    return { status: response.status, body };
+  };
+
+  const meta = await getJson("/api/meta");
+  check(
+    "REST /api/meta returns the fuel catalogue",
+    meta.status === 200 && (meta.body?.fuels?.length ?? 0) >= 10,
+    `${meta.body?.fuels?.length ?? 0} fuels, v${meta.body?.version ?? "?"}`,
+  );
+
+  const stationsApi = await getJson("/api/stations?location=Leiria&fuels=diesel&limit=2");
+  check(
+    "REST /api/stations returns priced stations",
+    stationsApi.status === 200 && (stationsApi.body?.result?.fuels?.[0]?.stations?.length ?? 0) > 0,
+  );
+
+  const discountsApi = await getJson("/api/discounts");
+  check(
+    "REST /api/discounts returns programmes",
+    discountsApi.status === 200 && (discountsApi.body?.result?.programs?.length ?? 0) > 0,
+    `${discountsApi.body?.result?.programs?.length ?? 0} programmes`,
+  );
+
+  const historyApi = await getJson("/api/history?fuels=diesel&days=7");
+  check(
+    "REST /api/history returns history points",
+    historyApi.status === 200 && (historyApi.body?.result?.fuels?.[0]?.points?.length ?? 0) > 0,
+  );
+
+  const badApi = await fetch(origin + "/api/stations?limit=abc");
+  check("REST validation errors are 400", badApi.status === 400, `HTTP ${badApi.status}`);
+
+  const shell = await fetch(origin + "/");
+  const shellHtml = await shell.text();
+  check(
+    "dashboard shell is served at /",
+    shell.status === 200 && shellHtml.includes('<div id="app">'),
+  );
+
+  const deepLink = await fetch(origin + "/discounts");
+  check(
+    "SPA deep link falls back to the shell",
+    deepLink.status === 200 && (await deepLink.text()).includes('<div id="app">'),
+  );
+
+  const manifest = await fetch(origin + "/manifest.webmanifest");
+  check("PWA manifest is served", manifest.status === 200);
+
+  const serviceWorker = await fetch(origin + "/sw.js");
+  check("service worker is served", serviceWorker.status === 200);
+
+  const docs = await fetch(origin + "/docs");
+  check(
+    "/docs serves the MCP documentation",
+    docs.status === 200 && (await docs.text()).includes("cheaper-fuel"),
+  );
+
   const failed = results.filter((result) => !result.ok);
   console.log(`\n${results.length - failed.length}/${results.length} checks passed`);
   if (failed.length > 0) process.exitCode = 1;

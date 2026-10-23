@@ -74,8 +74,15 @@ export function renderLanding(origin: string): string {
   <h1>cheaper-fuel <span class="badge">v${escapeHtml(SERVER_VERSION)}</span></h1>
   <p class="lede">A remote MCP server for fuel prices at filling stations in mainland Portugal.</p>
 
-  <h2>Endpoint</h2>
-  <p><code>${escapeHtml(endpoint)}</code> — Streamable HTTP, stateless, no authentication.</p>
+  <h2>Endpoints</h2>
+  <table>
+    <thead><tr><th>URL</th><th>What it is</th></tr></thead>
+    <tbody>
+      <tr><td><a href="${escapeHtml(origin)}/">${escapeHtml(origin)}/</a></td><td>Web dashboard (installable PWA)</td></tr>
+      <tr><td><a href="${escapeHtml(origin)}/api">${escapeHtml(origin)}/api</a></td><td>Read-only JSON API backing the dashboard</td></tr>
+      <tr><td><code>${escapeHtml(endpoint)}</code></td><td>MCP endpoint — Streamable HTTP, stateless, no authentication</td></tr>
+    </tbody>
+  </table>
 
   <h2>Connect a client</h2>
   <pre><code># Claude Code

@@ -1,9 +1,10 @@
-import type { Env } from "./env";
-import { SERVER_NAME, SERVER_VERSION } from "./env";
-import { createDgegContext, pingUpstream } from "./dgeg";
-import { createServer } from "./mcp";
-import { renderLanding } from "./landing";
 import { createMcpHandler } from "agents/mcp/server";
+
+import { handleApi } from "./api";
+import { createDgegContext, pingUpstream } from "./dgeg";
+import { SERVER_NAME, SERVER_VERSION, type Env } from "./env";
+import { renderLanding } from "./landing";
+import { createServer } from "./mcp";
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body, null, 2), {
@@ -36,7 +37,7 @@ export default {
       return createMcpHandler(() => createServer(env), { route: "/mcp" })(request, env, ctx);
     }
 
-    if (url.pathname === "/health") {
+    if (url.pathname === "/health" || url.pathname === "/api/health") {
       const dgeg = createDgegContext(env);
       const reachable = await probeUpstream(dgeg);
       return json({
@@ -49,7 +50,11 @@ export default {
       });
     }
 
-    if (url.pathname === "/" || url.pathname === "/index.html") {
+    if (url.pathname.startsWith("/api/") || url.pathname === "/api") {
+      return handleApi(request, env);
+    }
+
+    if (url.pathname === "/docs" || url.pathname === "/docs/") {
       return new Response(renderLanding(url.origin), {
         headers: {
           "content-type": "text/html; charset=utf-8",
@@ -61,7 +66,7 @@ export default {
     return json(
       {
         error: "not_found",
-        hint: "The MCP endpoint is /mcp (POST). Open / for documentation.",
+        hint: "The dashboard is at /. The MCP endpoint is /mcp. The REST API is under /api.",
       },
       404,
     );
