@@ -359,8 +359,10 @@ function discountExtras(
   const extras: Partial<StationInfo> = {};
   if (outcome.applied) extras.discount = resolutionPayload(outcome.applied, unit, lang);
   if (outcome.possible.length > 0) {
+    // Every priced alternative the caller could use, so a card can list the
+    // remaining prices instead of hiding them behind a mode filter.
     extras.possible_discounts = outcome.possible
-      .slice(0, 2)
+      .slice(0, 5)
       .map((entry) => resolutionPayload(entry, unit, lang));
   }
   if (outcome.scheduled.length > 0) {
