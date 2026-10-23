@@ -8,9 +8,17 @@
   "observability": {
     "enabled": true
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "cheaper-fuel-discounts",
+      "database_id": "05ddd05a-b94f-48a6-a489-d9e777217830",
+      "migrations_dir": "migrations"
+    }
+  ],
   "vars": {
     "DGEG_BASE_URL": "https://precoscombustiveis.dgeg.gov.pt/api/PrecoComb",
     "CACHE_TTL_SECONDS": "86400",
-    "USER_AGENT": "cheaper-fuel-mcp/0.1 (+https://github.com/jorgemgon/cheaper-fuel)"
+    "USER_AGENT": "cheaper-fuel-mcp/0.2 (+https://github.com/jorgemgon/cheaper-fuel)"
   }
 }

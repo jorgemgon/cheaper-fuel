@@ -1,6 +1,6 @@
 {
   "name": "cheaper-fuel",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "MCP server for mainland Portugal fuel prices, sourced from DGEG.",
@@ -10,7 +10,12 @@
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "smoke": "node test/smoke.mjs"
+    "smoke": "node test/smoke.mjs",
+    "db:migrate:local": "wrangler d1 migrations apply cheaper-fuel-discounts --local",
+    "db:migrate:remote": "wrangler d1 migrations apply cheaper-fuel-discounts --remote",
+    "discounts:migration": "node scripts/build-seed-migration.mjs",
+    "discounts:check": "vitest run test/discounts-seed.test.ts",
+    "discounts:verify": "node scripts/verify-discount-sources.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.3.1",
