@@ -121,6 +121,22 @@ describe("searchProximity", () => {
 
     expect(result.effectiveRadiusKm).toBeLessThanOrEqual(20);
   });
+
+  it("returns every station inside the radius when the cap is unbounded", () => {
+    const result = searchProximity({
+      rows: [near, far],
+      fuelNames: ["Gasóleo simples"],
+      point: { lat: 39.74, lon: -8.81 },
+      radiusKm: 40,
+      // Asking for everything makes the chosen radius the boundary: no widening.
+      maxRadiusKm: 40,
+      limitPerFuel: Number.POSITIVE_INFINITY,
+      sort: "distance",
+    });
+
+    expect(result.effectiveRadiusKm).toBe(40);
+    expect(result.byFuel.get("Gasóleo simples")).toHaveLength(2);
+  });
 });
 
 describe("sortByPrice", () => {
@@ -144,6 +160,14 @@ describe("sortByPrice", () => {
   it("keeps nulls out of a descending ranking", () => {
     const sorted = sortByPrice([{ price: null }, { price: 2.4 }], 1, "desc");
     expect(sorted.map((entry) => entry.price)).toEqual([2.4]);
+  });
+
+  it("keeps every row when the limit is unbounded", () => {
+    const sorted = sortByPrice(
+      [{ price: 2.2 }, { price: 1.9 }, { price: 2.4 }],
+      Number.POSITIVE_INFINITY,
+    );
+    expect(sorted.map((entry) => entry.price)).toEqual([1.9, 2.2, 2.4]);
   });
 });
 

@@ -83,6 +83,15 @@ export function numberParam(search: URLSearchParams, key: string): number | unde
   return Number.isNaN(parsed) ? Number.NaN : parsed;
 }
 
+/** Station requests accept a count, or "all" for everything inside the radius. */
+export function stationLimitParam(search: URLSearchParams): number | "all" | undefined {
+  const value = textParam(search, "limit");
+  if (value === undefined) return undefined;
+  if (value.toLowerCase() === "all") return "all";
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? Number.NaN : parsed;
+}
+
 export function booleanParam(search: URLSearchParams, key: string): boolean | undefined {
   const value = textParam(search, key)?.toLowerCase();
   if (value === undefined) return undefined;
@@ -113,7 +122,7 @@ export function stationsQuery(search: URLSearchParams) {
     station_type: textParam(search, "station_type"),
     radius_km: numberParam(search, "radius_km"),
     max_radius_km: numberParam(search, "max_radius_km"),
-    limit: numberParam(search, "limit"),
+    limit: stationLimitParam(search),
     min_price: numberParam(search, "min_price"),
     max_price: numberParam(search, "max_price"),
     updated_within_hours: numberParam(search, "updated_within_hours"),

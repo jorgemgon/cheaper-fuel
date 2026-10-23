@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { booleanParam, handleApi, historyQuery, listParam, numberParam, stationsQuery } from "../src/api";
+import {
+  booleanParam,
+  handleApi,
+  historyQuery,
+  listParam,
+  numberParam,
+  stationsQuery,
+} from "../src/api";
+import { findStationsInput } from "../src/tool-inputs";
 import type { Env } from "../src/env";
 
 const env = {} as Env;
@@ -49,6 +57,20 @@ describe("query coercion", () => {
       from: undefined,
       to: undefined,
     });
+  });
+
+  it("accepts limit=all as \u201cevery station in the radius\u201d", () => {
+    expect(stationsQuery(new URLSearchParams("location=Leiria&limit=all")).limit).toBe("all");
+    expect(stationsQuery(new URLSearchParams("location=Leiria&limit=ALL")).limit).toBe("all");
+    expect(stationsQuery(new URLSearchParams("location=Leiria&limit=25")).limit).toBe(25);
+    const invalidLimit = stationsQuery(new URLSearchParams("limit=abc")).limit;
+    expect(typeof invalidLimit === "number" && Number.isNaN(invalidLimit)).toBe(true);
+  });
+
+  it("validates limit=all against the shared station schema", () => {
+    expect(findStationsInput.parse({ location: "Leiria", limit: "all" }).limit).toBe("all");
+    expect(() => findStationsInput.parse({ location: "Leiria", limit: "bogus" })).toThrow();
+    expect(() => findStationsInput.parse({ location: "Leiria", limit: 0 })).toThrow();
   });
 });
 

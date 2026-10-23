@@ -28,7 +28,13 @@ export const findStationsInput = z.object({
     .describe("highway, supermarket/retail park, or other."),
   radius_km: z.number().min(1).max(60).optional().describe("Initial search radius. Default 15."),
   max_radius_km: z.number().min(1).max(80).optional().describe("Upper bound for automatic widening. Default 40."),
-  limit: z.number().int().min(1).max(100).optional().describe("Results per fuel. Default 5."),
+  limit: z
+    .union([z.literal("all"), z.number().int().min(1).max(100)])
+    .optional()
+    .describe(
+      'Results per fuel. Default 5. Use "all" for every station inside the radius: no per-fuel cap ' +
+        "and no automatic radius widening.",
+    ),
   min_price: z.number().min(0).optional().describe("Only stations at or above this price (EUR)."),
   max_price: z.number().min(0).optional().describe("Only stations at or below this price (EUR)."),
   updated_within_hours: z
