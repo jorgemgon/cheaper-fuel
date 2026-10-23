@@ -43,7 +43,7 @@ onMounted(async () => {
     <div class="card stack">
       <h2>O que está incluído</h2>
       <ul class="small stacked-list">
-        <li><strong>Favoritos</strong> — os postos que guardaste neste dispositivo, com preços atualizados.</li>
+        <li><strong>Favoritos</strong> — os postos que guardaste neste dispositivo, com todos os combustíveis e preços atualizados.</li>
         <li><strong>Explorar</strong> — postos perto de ti ou de um concelho, com preço efetivo após descontos.</li>
         <li><strong>Mercado</strong> — médias, mínimos, máximos e amplitude por combustível.</li>
         <li><strong>Histórico</strong> — média nacional diária e desconto observado.</li>

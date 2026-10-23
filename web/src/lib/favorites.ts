@@ -1,10 +1,23 @@
 import type { StationDetail, StationInfo } from "@contracts";
 
-export interface FavoriteStation {
-  station: StationInfo;
-  /** The fuel the user was looking at when saving, shown on the favourite card. */
+export interface FavoriteFuelRow {
   fuel: string;
+  station: StationInfo;
+}
+
+export interface FavoriteStation {
+  /** The station whose catalogue is saved; `fuel` is the card the user starred. */
+  station: StationInfo;
+  fuel: string;
+  /** Every fuel the station sells, so the favourite shows its full catalogue. */
+  rows: FavoriteFuelRow[];
   savedAt: string;
+}
+
+export interface FavoriteUpdate {
+  station: StationInfo;
+  fuel: string;
+  rows: FavoriteFuelRow[];
 }
 
 function withoutDistance(station: StationInfo): StationInfo {
@@ -12,7 +25,37 @@ function withoutDistance(station: StationInfo): StationInfo {
   return rest;
 }
 
-/** Validates whatever localStorage held before rendering it. */
+function isStation(value: unknown): value is StationInfo {
+  if (!value || typeof value !== "object") return false;
+  const station = value as Partial<StationInfo>;
+  return (
+    typeof station.id === "number" &&
+    typeof station.name === "string" &&
+    Boolean(station.address) &&
+    Boolean(station.coordinates)
+  );
+}
+
+function rowsFrom(value: unknown, fallbackStation: StationInfo, fallbackFuel: string): FavoriteFuelRow[] {
+  if (!Array.isArray(value)) {
+    return [{ fuel: fallbackFuel, station: withoutDistance(fallbackStation) }];
+  }
+
+  const rows: FavoriteFuelRow[] = [];
+  const seen = new Set<string>();
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object") continue;
+    const item = entry as Partial<FavoriteFuelRow>;
+    if (typeof item.fuel !== "string" || item.fuel.trim() === "" || !isStation(item.station)) continue;
+    if (item.station.id !== fallbackStation.id || seen.has(item.fuel)) continue;
+    seen.add(item.fuel);
+    rows.push({ fuel: item.fuel, station: withoutDistance(item.station) });
+  }
+
+  return rows.length > 0 ? rows : [{ fuel: fallbackFuel, station: withoutDistance(fallbackStation) }];
+}
+
+/** Validates whatever localStorage held before rendering it, including old one-fuel saves. */
 export function normalizeFavorites(value: unknown): FavoriteStation[] {
   if (!Array.isArray(value)) return [];
   const seen = new Set<number>();
@@ -21,14 +64,20 @@ export function normalizeFavorites(value: unknown): FavoriteStation[] {
   for (const entry of value) {
     if (!entry || typeof entry !== "object") continue;
     const item = entry as Partial<FavoriteStation>;
-    const station = item.station;
-    if (!station || typeof station.id !== "number" || typeof station.name !== "string") continue;
-    if (!station.address || !station.coordinates) continue;
+    if (!isStation(item.station)) continue;
     if (typeof item.fuel !== "string" || item.fuel.trim() === "") continue;
     if (typeof item.savedAt !== "string") continue;
-    if (seen.has(station.id)) continue;
-    seen.add(station.id);
-    favorites.push({ station, fuel: item.fuel, savedAt: item.savedAt });
+    if (seen.has(item.station.id)) continue;
+
+    const rows = rowsFrom(item.rows, item.station, item.fuel);
+    const primary = rows.find((row) => row.fuel === item.fuel) ?? rows[0];
+    seen.add(item.station.id);
+    favorites.push({
+      station: primary.station,
+      fuel: primary.fuel,
+      rows,
+      savedAt: item.savedAt,
+    });
   }
   return favorites;
 }
@@ -47,37 +96,42 @@ export function toggleFavoriteStation(
   if (isFavoriteStation(favorites, station.id)) {
     return favorites.filter((favorite) => favorite.station.id !== station.id);
   }
-  return [{ station: withoutDistance(station), fuel, savedAt }, ...favorites];
+
+  const row = { fuel, station: withoutDistance(station) };
+  return [{ station: row.station, fuel, rows: [row], savedAt }, ...favorites];
 }
 
-/** Replaces a saved snapshot with fresh prices, keeping the original save date. */
+/** Replaces saved snapshots with fresh prices, keeping the original save date. */
 export function updateFavoriteStation(
   favorites: readonly FavoriteStation[],
-  station: StationInfo,
-  fuel: string,
+  update: FavoriteUpdate,
 ): FavoriteStation[] {
+  const rows = update.rows.map((row) => ({
+    fuel: row.fuel,
+    station: withoutDistance(row.station),
+  }));
+  const primary = rows.find((row) => row.fuel === update.fuel) ?? rows[0];
+  if (!primary) return [...favorites];
+
   return favorites.map((favorite) =>
-    favorite.station.id === station.id
-      ? { ...favorite, station: withoutDistance(station), fuel }
+    favorite.station.id === update.station.id
+      ? {
+          ...favorite,
+          station: withoutDistance(primary.station),
+          fuel: primary.fuel,
+          rows,
+        }
       : favorite,
   );
 }
 
-/**
- * Rebuilds a search-style station row from the station-details endpoint, so a
- * favourite can show current prices even when it is outside the current search.
- */
-export function favoriteFromDetail(
+function stationForFuel(
   detail: StationDetail,
-  fuelName: string,
-): { station: StationInfo; fuel: string } | null {
-  const { latitude, longitude } = detail.address;
-  if (latitude === null || longitude === null) return null;
-
-  const fuel = detail.fuels.find((entry) => entry.name === fuelName) ?? detail.fuels[0];
-  if (!fuel) return null;
-
-  const station: StationInfo = {
+  fuel: StationDetail["fuels"][number],
+  latitude: number,
+  longitude: number,
+): StationInfo {
+  return {
     id: detail.id,
     name: detail.name,
     brand: detail.brand,
@@ -103,6 +157,21 @@ export function favoriteFromDetail(
     ...(fuel.catalogued_discounts ? { catalogued_discounts: fuel.catalogued_discounts } : {}),
     ...(fuel.locked_discounts ? { locked_discounts: fuel.locked_discounts } : {}),
   };
+}
 
-  return { station, fuel: fuel.name };
+/**
+ * Rebuilds the station's whole fuel catalogue from the details endpoint, so a
+ * favourite shows every fuel price even outside the current search.
+ */
+export function favoriteFromDetail(detail: StationDetail, fuelName: string): FavoriteUpdate | null {
+  const { latitude, longitude } = detail.address;
+  if (latitude === null || longitude === null || detail.fuels.length === 0) return null;
+
+  const rows = detail.fuels.map((fuel) => ({
+    fuel: fuel.name,
+    station: stationForFuel(detail, fuel, latitude, longitude),
+  }));
+  const primary = rows.find((row) => row.fuel === fuelName) ?? rows[0];
+
+  return { station: primary.station, fuel: primary.fuel, rows };
 }

@@ -37,10 +37,10 @@ A Vue 3 PWA served from the same Worker (`/`), with a Favoritos home page and a 
 designed phone-first for use at the pump:
 
 - **Favoritos** — the home page when this device has saved stations. Every Explore card carries a
-  star; saved stations live in `localStorage` and open as a map + card list, with prices refreshed
-  from the station endpoint. With no favourites, `/` opens Explore and the Favoritos tab is hidden.
-  Nothing is sent to a server, and the list is not filtered by the search controls; clearing site
-  data clears it.
+  star; saved stations live in `localStorage` and open as a map plus one group per station showing
+  **every fuel the station sells**, with prices and discounts refreshed from the station endpoint.
+  With no favourites, `/` opens Explore and the Favoritos tab is hidden. Nothing is sent to a server,
+  and the list is not filtered by the search controls; clearing site data clears it.
 - **Explorar** — asks for your location (one tap) or takes a concelho/postcode, then shows the nearest
   stations on a **Leaflet map** with markers colour-coded by *effective price* after discounts,
   synchronised with the result list. It opens with the lowest price first and keeps that order when

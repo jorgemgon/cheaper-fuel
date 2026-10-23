@@ -11,13 +11,11 @@ import { useProfile } from "../composables/useProfile";
 
 const router = useRouter();
 const { profile } = useProfile();
-const { favorites, hasFavorites } = useFavorites();
+const { favorites, hasFavorites, remove } = useFavorites();
 const { loading, refreshFavorites } = useFavoriteRefresh();
 const layoutMode = useLayoutMode();
 
-const rows = computed(() =>
-  favorites.value.map((favorite) => ({ station: favorite.station, fuel: favorite.fuel })),
-);
+const rows = computed(() => favorites.value.flatMap((favorite) => favorite.rows));
 
 // Removing the last favourite removes the Favoritos tab: go back to Explore.
 watch(hasFavorites, (has) => {
@@ -60,19 +58,56 @@ onMounted(() => {
           </h2>
           <span v-if="loading" class="badge">a atualizar…</span>
         </div>
-        <p class="tiny muted">Toca na estrela para remover.</p>
+        <p class="tiny muted">Toca na estrela para remover. Cada posto mostra todos os combustíveis.</p>
 
         <div class="stack">
-          <StationCard
+          <section
             v-for="favorite in favorites"
             :key="favorite.station.id"
-            :station="favorite.station"
-            :fuel="favorite.fuel"
-            show-fuel
-            :quantity="profile.quantity"
-            :quantity-unit="profile.quantityUnit"
-            @focus="() => undefined"
-          />
+            class="favorite-station stack"
+          >
+            <div class="row favorite-station-head" style="justify-content: space-between; align-items: flex-start">
+              <div>
+                <h3>{{ favorite.station.name }}</h3>
+                <p class="tiny muted" style="margin: 0">
+                  {{ favorite.station.address.municipality }}
+                  <template
+                    v-if="
+                      favorite.station.address.locality &&
+                      favorite.station.address.locality !== favorite.station.address.municipality
+                    "
+                  >
+                    · {{ favorite.station.address.locality }}
+                  </template>
+                  <template v-if="favorite.station.brand"> · {{ favorite.station.brand }}</template>
+                  · {{ favorite.rows.length }}
+                  {{ favorite.rows.length === 1 ? "combustível" : "combustíveis" }}
+                </p>
+              </div>
+              <button
+                type="button"
+                class="fav-btn is-on"
+                aria-label="Remover dos favoritos"
+                title="Remover dos favoritos"
+                @click="remove(favorite.station.id)"
+              >
+                ★
+              </button>
+            </div>
+
+            <div class="stack">
+              <StationCard
+                v-for="row in favorite.rows"
+                :key="row.fuel"
+                :station="row.station"
+                :fuel="row.fuel"
+                hide-head
+                :quantity="profile.quantity"
+                :quantity-unit="profile.quantityUnit"
+                @focus="() => undefined"
+              />
+            </div>
+          </section>
         </div>
       </div>
     </div>

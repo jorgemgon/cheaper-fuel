@@ -23,6 +23,8 @@ const props = defineProps<{
   fuel: string;
   /** Show the fuel badge (the favourites list is not split by fuel). */
   showFuel?: boolean;
+  /** Grouped favourites render the station header once and keep only the fuel. */
+  hideHead?: boolean;
 }>();
 const emit = defineEmits<{ focus: [id: number] }>();
 const { isFavorite, toggle } = useFavorites();
@@ -70,7 +72,10 @@ const tierRows = computed(() =>
 
 <template>
   <article class="card station" @mouseenter="emit('focus', props.station.id)">
-    <div class="station-head">
+    <div v-if="props.hideHead" class="row station-fuel-head">
+      <span class="badge">{{ props.fuel }}</span>
+    </div>
+    <div v-if="!props.hideHead" class="station-head">
       <div>
         <div class="station-name">{{ props.station.name }}</div>
         <div class="station-address">

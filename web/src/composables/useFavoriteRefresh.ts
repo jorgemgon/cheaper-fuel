@@ -34,7 +34,7 @@ export function useFavoriteRefresh() {
           const detail = payload.result.station;
           if (!detail) continue;
           const updated = favoriteFromDetail(detail, favorite.fuel);
-          if (updated) refresh(updated.station, updated.fuel);
+          if (updated) refresh(updated.station, updated.fuel, updated.rows);
         } catch {
           // Offline or station removed: the locally saved snapshot still works.
         }

@@ -881,6 +881,25 @@ table.data th {
   min-height: 240px;
 }
 
+.favorite-station {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.favorite-station-head h3 {
+  margin: 0;
+}
+
+.favorite-station .station {
+  background: var(--surface);
+}
+
+.station-fuel-head {
+  margin-bottom: 0.35rem;
+}
+
 @media (min-width: 900px) {
   .favorites-layout {
     display: grid;

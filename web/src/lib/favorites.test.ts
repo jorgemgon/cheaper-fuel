@@ -33,7 +33,13 @@ function station(id = 1, distance?: number): StationInfo {
 }
 
 function favorite(stationId = 1): FavoriteStation {
-  return { station: station(stationId), fuel: "Gasóleo simples", savedAt: "2026-10-23T08:00:00.000Z" };
+  const row = { fuel: "Gasóleo simples", station: station(stationId) };
+  return {
+    station: row.station,
+    fuel: row.fuel,
+    rows: [row],
+    savedAt: "2026-10-23T08:00:00.000Z",
+  };
 }
 
 function detail(overrides: Partial<StationDetail> = {}): StationDetail {
@@ -93,6 +99,16 @@ describe("normalizeFavorites", () => {
     expect(normalizeFavorites("nope")).toEqual([]);
     expect(normalizeFavorites(null)).toEqual([]);
   });
+
+  it("upgrades an old one-fuel favourite into a row list", () => {
+    const [entry] = normalizeFavorites([
+      { station: station(5), fuel: "Gasóleo simples", savedAt: "2026-10-23T08:00:00.000Z" },
+    ]);
+
+    expect(entry.rows).toHaveLength(1);
+    expect(entry.rows[0].fuel).toBe("Gasóleo simples");
+    expect(entry.station.id).toBe(5);
+  });
 });
 
 describe("toggleFavoriteStation", () => {
@@ -100,6 +116,7 @@ describe("toggleFavoriteStation", () => {
     const added = toggleFavoriteStation([], station(1, 4.2), "Gasóleo simples", "2026-10-23T09:00:00.000Z");
     expect(added).toHaveLength(1);
     expect(added[0].station.distance_km).toBeUndefined();
+    expect(added[0].rows).toHaveLength(1);
     expect(added[0].savedAt).toBe("2026-10-23T09:00:00.000Z");
 
     const removed = toggleFavoriteStation(added, station(1), "Gasolina simples 95");
@@ -108,28 +125,37 @@ describe("toggleFavoriteStation", () => {
 });
 
 describe("updateFavoriteStation", () => {
-  it("refreshes the snapshot and fuel but keeps the save date", () => {
+  it("replaces the whole fuel catalogue and keeps the save date", () => {
     const current = favorite(1);
-    const updated = updateFavoriteStation(
-      [current],
-      { ...station(1, 9), price_eur: 1.8 },
-      "Gasolina simples 95",
-    );
+    const rows = [
+      { fuel: "Gasóleo simples", station: { ...station(1), price_eur: 1.8 } },
+      { fuel: "Gasolina simples 95", station: { ...station(1), price_eur: 2.0 } },
+    ];
+    const updated = updateFavoriteStation([current], {
+      station: rows[0].station,
+      fuel: "Gasolina simples 95",
+      rows,
+    });
 
     expect(updated[0].fuel).toBe("Gasolina simples 95");
-    expect(updated[0].station.price_eur).toBe(1.8);
+    expect(updated[0].station.price_eur).toBe(2.0);
     expect(updated[0].station.distance_km).toBeUndefined();
+    expect(updated[0].rows).toHaveLength(2);
     expect(updated[0].savedAt).toBe(current.savedAt);
   });
 });
 
 describe("favoriteFromDetail", () => {
-  it("turns a station detail into a search-style row", () => {
-    const row = favoriteFromDetail(detail(), "Gasolina simples 95");
+  it("rebuilds every fuel the station sells", () => {
+    const update = favoriteFromDetail(detail(), "Gasolina simples 95");
 
-    expect(row).not.toBeNull();
-    expect(row?.fuel).toBe("Gasolina simples 95");
-    expect(row?.station).toMatchObject({
+    expect(update).not.toBeNull();
+    expect(update?.fuel).toBe("Gasolina simples 95");
+    expect(update?.rows.map((row) => row.fuel)).toEqual([
+      "Gasóleo simples",
+      "Gasolina simples 95",
+    ]);
+    expect(update?.station).toMatchObject({
       id: 7,
       name: "Galp Leiria",
       price_eur: 2,

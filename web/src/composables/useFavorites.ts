@@ -5,6 +5,7 @@ import {
   normalizeFavorites,
   toggleFavoriteStation,
   updateFavoriteStation,
+  type FavoriteFuelRow,
   type FavoriteStation,
 } from "../lib/favorites";
 import { readJson, writeJson } from "../lib/storage";
@@ -39,8 +40,8 @@ export function useFavorites() {
     favorites.value = toggleFavoriteStation(favorites.value, station, fuel);
   }
 
-  function refresh(station: StationInfo, fuel: string): void {
-    favorites.value = updateFavoriteStation(favorites.value, station, fuel);
+  function refresh(station: StationInfo, fuel: string, rows: FavoriteFuelRow[]): void {
+    favorites.value = updateFavoriteStation(favorites.value, { station, fuel, rows });
   }
 
   function remove(id: number): void {
