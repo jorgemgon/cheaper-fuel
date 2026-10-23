@@ -18,6 +18,7 @@ import { useProfile, type ResultLimit, type SortMode } from "../composables/useP
 import { buildProfileOptions } from "../lib/discount-labels";
 import { formatDate, formatRelativeTime } from "../lib/format";
 import { GEO_CACHE_TTL_MS, isFresh } from "../lib/geo";
+import { nextSortState } from "../lib/sort-order";
 import { readJson, writeJson } from "../lib/storage";
 
 const route = useRoute();
@@ -110,13 +111,12 @@ const sortOptions: Array<{ key: SortMode; label: string }> = [
 ];
 
 function setSort(key: SortMode) {
-  // Clicking the active key flips the direction, like a table header.
-  if (profile.value.sort === key) {
-    profile.value.sortOrder = profile.value.sortOrder === "desc" ? "asc" : "desc";
-    return;
-  }
-  profile.value.sort = key;
-  profile.value.sortOrder = key === "distance" ? "asc" : "desc";
+  const next = nextSortState(
+    { sort: profile.value.sort, sortOrder: profile.value.sortOrder },
+    key,
+  );
+  profile.value.sort = next.sort;
+  profile.value.sortOrder = next.sortOrder;
 }
 
 function buildQuery(): StationQuery | null {
@@ -237,7 +237,8 @@ async function useMyLocation(): Promise<void> {
   writeJson("geo-consent", "granted");
   writeJson("geo-position", { ...coords, at: Date.now() });
   searchedFrom.value = "geo";
-  profile.value.sort = "distance";
+  // Geolocation changes where to search, not how to order: the default stays
+  // cheapest first unless the user picked another order.
   await search();
 }
 

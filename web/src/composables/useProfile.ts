@@ -19,7 +19,7 @@ export interface Profile {
   fillLitres: number;
 }
 
-const PROFILE_VERSION = 4;
+const PROFILE_VERSION = 5;
 
 const DEFAULTS: Profile = {
   version: PROFILE_VERSION,
@@ -44,11 +44,12 @@ delete (initial as Profile & { discountMode?: unknown }).discountMode;
 
 // Bumping this resets the stored display settings once, so everyone lands on
 // the current defaults instead of ones inherited from an older build. Cards,
-// services, fuels and location are preserved.
-if ((stored.version ?? 1) < PROFILE_VERSION) {
+// services, fuels and location are preserved; a chosen result limit survives.
+const storedVersion = stored.version ?? 1;
+if (storedVersion < 4) initial.limit = DEFAULTS.limit;
+if (storedVersion < PROFILE_VERSION) {
   initial.sort = DEFAULTS.sort;
   initial.sortOrder = DEFAULTS.sortOrder;
-  initial.limit = DEFAULTS.limit;
 }
 initial.version = PROFILE_VERSION;
 
