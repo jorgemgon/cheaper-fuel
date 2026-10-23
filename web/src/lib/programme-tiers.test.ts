@@ -1,7 +1,7 @@
 import type { DiscountEntryInfo, DiscountProgrammeInfo } from "@contracts";
 import { describe, expect, it } from "vitest";
 
-import { buildProgrammeTiers, buildTierLadders } from "./programme-tiers";
+import { buildProgrammeTiers, buildTierLadders, formatTierValue } from "./programme-tiers";
 
 function entry(overrides: Partial<DiscountEntryInfo> & { id: string }): DiscountEntryInfo {
   return {
@@ -58,30 +58,62 @@ describe("buildProgrammeTiers", () => {
       ]),
     );
 
-    expect(tiers.map((tier) => [tier.label, tier.cents])).toEqual([
-      ["1 serviço", 20],
-      ["2 serviços", 25],
-      ["3+ serviços", 30],
+    expect(tiers.map((tier) => [tier.label, tier.valueType, tier.value])).toEqual([
+      ["1 serviço", "cents_per_litre", 20],
+      ["2 serviços", "cents_per_litre", 25],
+      ["3+ serviços", "cents_per_litre", 30],
     ]);
   });
 
-  it("honours a max-combine tier and skips entries without cents", () => {
+  it("labels a tier with no catalogue label as Base", () => {
     const tiers = buildProgrammeTiers(
-      programme("mixed", [
-        entry({ id: "a", tier: "t1", tier_label: "Base", min_services: 1, value: 5, combine: "max" }),
-        entry({ id: "b", tier: "t1", tier_label: "Base", min_services: 1, value: 9, combine: "max" }),
-        entry({ id: "c", tier: "t2", tier_label: "Top", min_services: 2, value_type: "percent", value: 10 }),
-        entry({ id: "d", tier: "t3", tier_label: "Old", min_services: 3, value: 20, status: "expired" }),
+      programme("repsol-motor", [
+        entry({ id: "base", tier: "", tier_label: "", min_services: 0, value: 8 }),
+        entry({ id: "luz", tier: "motor-luz", tier_label: "Com eletricidade", min_services: 1, value: 13 }),
+        entry({
+          id: "luz-calor",
+          tier: "motor-luz-calor",
+          tier_label: "Com eletricidade e gás",
+          min_services: 2,
+          value: 18,
+        }),
+      ]),
+    );
+
+    expect(tiers.map((tier) => [tier.label, tier.value])).toEqual([
+      ["Base", 8],
+      ["Com eletricidade", 13],
+      ["Com eletricidade e gás", 18],
+    ]);
+  });
+
+  it("keeps a single euro-per-fill level instead of dropping it", () => {
+    const tiers = buildProgrammeTiers(
+      programme("bp-pingo-doce", [
+        entry({ id: "bp", value_type: "eur_per_fill", value: 2 }),
       ]),
     );
 
     expect(tiers).toHaveLength(1);
-    expect(tiers[0]).toMatchObject({ id: "t1", cents: 9 });
+    expect(tiers[0]).toMatchObject({ label: "Base", valueType: "eur_per_fill", value: 2 });
+  });
+
+  it("honours a max-combine tier and skips expired entries", () => {
+    const tiers = buildProgrammeTiers(
+      programme("mixed", [
+        entry({ id: "a", tier: "t1", tier_label: "Base", min_services: 1, value: 5, combine: "max" }),
+        entry({ id: "b", tier: "t1", tier_label: "Base", min_services: 1, value: 9, combine: "max" }),
+        entry({ id: "c", tier: "t3", tier_label: "Old", min_services: 3, value: 20, status: "expired" }),
+      ]),
+    );
+
+    expect(tiers).toHaveLength(1);
+    expect(tiers[0]).toMatchObject({ id: "t1", value: 9 });
   });
 });
 
 describe("buildTierLadders", () => {
-  it("keeps only programmes with more than one tier", () => {
+  it("keeps every programme, including single-level ones", () => {
     const ladders = buildTierLadders([
       programme("multi", [
         entry({ id: "1", tier: "t1", tier_label: "1", min_services: 1, value: 10 }),
@@ -90,7 +122,24 @@ describe("buildTierLadders", () => {
       programme("single", [entry({ id: "3", value: 5 })]),
     ]);
 
-    expect([...ladders.keys()]).toEqual(["multi"]);
+    expect([...ladders.keys()]).toEqual(["multi", "single"]);
     expect(ladders.get("multi")).toHaveLength(2);
+    expect(ladders.get("single")).toHaveLength(1);
+  });
+});
+
+describe("formatTierValue", () => {
+  it("formats each unit", () => {
+    const cents = buildProgrammeTiers(programme("c", [entry({ id: "a", value: 20 })]))[0];
+    const euros = buildProgrammeTiers(
+      programme("e", [entry({ id: "b", value_type: "eur_per_fill", value: 2 })]),
+    )[0];
+    const percent = buildProgrammeTiers(
+      programme("p", [entry({ id: "c", value_type: "percent", value: 10 })]),
+    )[0];
+
+    expect(formatTierValue(cents)).toBe("20 cênt./L");
+    expect(formatTierValue(euros).replace(/\s/g, " ")).toBe("2,00 € por abastecimento");
+    expect(formatTierValue(percent)).toBe("10%");
   });
 });

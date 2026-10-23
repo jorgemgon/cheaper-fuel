@@ -6,7 +6,7 @@ import type { QuantityUnit } from "../composables/useProfile";
 import { fillEstimate } from "../lib/fill-costs";
 import { formatCents, formatKm, formatRelativeTime } from "../lib/format";
 import { bestPriceDisplay, remainingPriceOptions } from "../lib/price-options";
-import type { ProgrammeTier } from "../lib/programme-tiers";
+import { formatTierValue, type ProgrammeTier } from "../lib/programme-tiers";
 
 const props = defineProps<{
   station: StationInfo;
@@ -20,6 +20,17 @@ const emit = defineEmits<{ focus: [id: number] }>();
 const bestPrice = computed(() => bestPriceDisplay(props.station));
 const priceOptions = computed(() => remainingPriceOptions(props.station));
 const estimate = computed(() => fillEstimate(props.station, props.quantity, props.quantityUnit));
+
+/** The ladder level the applied resolution belongs to. */
+function isActiveTier(tier: ProgrammeTier): boolean {
+  const discount = props.station.discount;
+  if (!discount) return false;
+  if (tier.id === (discount.tier?.trim() ?? "")) return true;
+  const label = discount.label?.trim();
+  if (label && tier.label === label) return true;
+  // A flat programme has a single level, which is the applied one by default.
+  return (props.tiers?.length ?? 0) === 1;
+}
 </script>
 
 <template>
@@ -81,15 +92,15 @@ const estimate = computed(() => fillEstimate(props.station, props.quantity, prop
         <span class="badge">{{ props.station.discount.schedule_label }}</span>
         <span v-if="props.station.discount.stale" class="badge badge-warn">verificar</span>
       </div>
-      <div v-if="props.tiers && props.tiers.length > 1" class="tier-ladder">
+      <div v-if="props.tiers && props.tiers.length > 0" class="tier-ladder">
         <span class="tiny muted">Níveis:</span>
         <span
           v-for="tier in props.tiers"
           :key="tier.id"
           class="tier-step"
-          :class="{ 'is-on': tier.id === props.station.discount.tier }"
+          :class="{ 'is-on': isActiveTier(tier) }"
         >
-          {{ tier.label }} · {{ formatCents(tier.cents) }}
+          {{ tier.label }} · {{ formatTierValue(tier) }}
         </span>
       </div>
       <p class="tiny muted" style="margin: 0">{{ props.station.discount.description }}</p>

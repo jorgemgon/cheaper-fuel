@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type {
+  DiscountInfo,
   DiscountProgrammeInfo,
   FindStationsResult,
   MetaResult,
@@ -109,12 +110,23 @@ const quantityLabel = computed(() =>
   profile.value.quantityUnit === "litres" ? `${profile.value.quantity} L` : `${profile.value.quantity} €`,
 );
 
-// Tier ladders (COMBINA 1/2/3+ services) come from the catalogue, not the
-// station payload, and only multi-tier programmes get one.
+// Tier ladders (COMBINA 1/2/3+ services, Repsol base/electricity/gas) come
+// from the catalogue. If that catalogue is unavailable, the applied discount
+// still provides one level so the card never loses its ladder.
 const programmeTiers = computed(() => buildTierLadders(programmes.value));
-function tiersFor(programmeId: string | null | undefined) {
-  if (!programmeId) return [];
-  return programmeTiers.value.get(programmeId) ?? [];
+function tiersFor(discount: DiscountInfo | undefined) {
+  if (!discount) return [];
+  const ladder = programmeTiers.value.get(discount.program_id);
+  if (ladder && ladder.length > 0) return ladder;
+  return [
+    {
+      id: discount.tier ?? "applied",
+      label: discount.label?.trim() || "Aplicado",
+      minServices: 0,
+      valueType: "cents_per_litre" as const,
+      value: discount.applied_cents,
+    },
+  ];
 }
 
 const sortOptions: Array<{ key: SortMode; label: string }> = [
@@ -557,7 +569,7 @@ async function runInitialSearch(): Promise<void> {
                 :station="row.station"
                 :quantity="profile.quantity"
                 :quantity-unit="profile.quantityUnit"
-                :tiers="tiersFor(row.station.discount?.program_id)"
+                :tiers="tiersFor(row.station.discount)"
                 @focus="() => undefined"
               />
             </div>
@@ -571,7 +583,7 @@ async function runInitialSearch(): Promise<void> {
             :station="row.station"
             :quantity="profile.quantity"
             :quantity-unit="profile.quantityUnit"
-            :tiers="tiersFor(row.station.discount?.program_id)"
+            :tiers="tiersFor(row.station.discount)"
             @focus="() => undefined"
           />
         </template>
