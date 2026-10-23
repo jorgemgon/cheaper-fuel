@@ -21,6 +21,7 @@ import { formatDate, formatRelativeTime } from "../lib/format";
 import { buildFuelGroups, fuelGroupCount } from "../lib/fuel-groups";
 import { GEO_CACHE_TTL_MS, isFresh } from "../lib/geo";
 import { buildTierLadders } from "../lib/programme-tiers";
+import { readSearchContext, saveSearchContext } from "../lib/search-context";
 import { nextSortState } from "../lib/sort-order";
 import { readJson, writeJson } from "../lib/storage";
 
@@ -177,6 +178,7 @@ async function search(): Promise<void> {
     if (sequence !== searchSequence) return;
     result.value = payload;
     searchedAt.value = new Date().toISOString();
+    persistSearchContext();
   } catch (caught) {
     if (sequence !== searchSequence) return;
     result.value = null;
@@ -199,6 +201,26 @@ const usesPoint = computed(
 );
 // The pin is the active search point: your position, or the spot you picked.
 const mapPin = computed(() => (usesPoint.value ? geoCoords.value : null));
+
+/** Keep the last successful search so a refresh does not reset the page. */
+function persistSearchContext(): void {
+  const mode = searchedFrom.value;
+  if (!mode) return;
+
+  if (mode === "place") {
+    const location = profile.value.location.trim();
+    if (location) saveSearchContext({ mode, location });
+    return;
+  }
+
+  if (geoCoords.value) {
+    saveSearchContext({
+      mode,
+      latitude: geoCoords.value.latitude,
+      longitude: geoCoords.value.longitude,
+    });
+  }
+}
 
 function hasSearchContext(): boolean {
   if (usesPoint.value && geoCoords.value) return true;
@@ -321,6 +343,23 @@ async function runInitialSearch(): Promise<void> {
     searchedFrom.value = "picked";
     await search();
     return;
+  }
+
+  // Restore the last search so refreshing keeps the location on screen.
+  const last = readSearchContext();
+  if (last) {
+    if (last.mode === "place" && last.location) {
+      profile.value.location = last.location;
+      searchedFrom.value = "place";
+      await search();
+      return;
+    }
+    if (last.latitude !== undefined && last.longitude !== undefined) {
+      setCoords({ latitude: last.latitude, longitude: last.longitude });
+      searchedFrom.value = last.mode;
+      await search();
+      return;
+    }
   }
 
   const consent = readJson<string | null>("geo-consent", null);
