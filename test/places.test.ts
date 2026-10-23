@@ -99,7 +99,44 @@ describe("resolveLocation", () => {
   it("resolves a 4-digit postal prefix", () => {
     const result = resolveLocation(index, "2430");
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.location.kind).toBe("postcode_prefix");
+    if (result.ok) {
+      expect(result.location.kind).toBe("postcode_prefix");
+      expect(result.location.municipality).toBe("Marinha Grande");
+    }
+  });
+
+  it("falls back to the postal prefix when DGEG has no such exact code", () => {
+    const result = resolveLocation(index, "2430-304");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.location.kind).toBe("postcode_prefix");
+      expect(result.location.municipality).toBe("Marinha Grande");
+      expect(result.location.label).toBe("2430 (Marinha Grande)");
+    }
+  });
+
+  it("accepts a 7-digit code typed without the dash", () => {
+    const result = resolveLocation(index, "2430304");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.location.kind).toBe("postcode_prefix");
+      expect(result.location.municipality).toBe("Marinha Grande");
+    }
+  });
+
+  it("keeps an exact postal code ahead of the prefix fallback", () => {
+    const result = resolveLocation(index, "2430-001");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.location.kind).toBe("postcode");
+      expect(result.location.municipality).toBe("Marinha Grande");
+    }
+  });
+
+  it("reports an unknown postal prefix instead of guessing", () => {
+    const result = resolveLocation(index, "9999-999");
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("not_found");
   });
 
   it("accepts explicit coordinates", () => {

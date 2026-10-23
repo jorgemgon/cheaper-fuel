@@ -153,6 +153,23 @@ export function parseCoordinates(input: string): { lat: number; lon: number } | 
   return { lat, lon };
 }
 
+/**
+ * Normalise a postal code as people actually type it: "2430304", "2430 304"
+ * and "2430-304" all mean the same code. Returns the canonical form plus the
+ * 4-digit prefix that DGEG can always answer for, or null when the input is
+ * not postal-shaped at all.
+ */
+export function parsePostalCode(input: string): { exact: string | null; prefix: string } | null {
+  const compact = input.replace(/[\s.\-]+/g, "");
+  if (!/^\d+$/.test(compact)) return null;
+  if (compact.length === 4) return { exact: null, prefix: compact };
+  if (compact.length === 7) {
+    const prefix = compact.slice(0, 4);
+    return { exact: `${prefix}-${compact.slice(4)}`, prefix };
+  }
+  return null;
+}
+
 function toResolved(place: Place): ResolvedLocation {
   return {
     label: place.kind === "municipality" ? place.value : `${place.value} (${place.municipality})`,
@@ -182,7 +199,7 @@ function notFound(input: string): ResolveResult {
 
 /**
  * Resolve a free-form place into coordinates. Order: explicit coordinates,
- * exact postal code, 4-digit postal prefix, concelho, locality.
+ * postal code (exact match first, then its 4-digit prefix), concelho, locality.
  */
 export function resolveLocation(index: PlaceIndex, input: string): ResolveResult {
   const trimmed = input.trim();
@@ -203,15 +220,16 @@ export function resolveLocation(index: PlaceIndex, input: string): ResolveResult
     };
   }
 
-  if (/^\d{4}-\d{3}$/.test(trimmed)) {
-    const hit = index.postcodes.find((place) => place.value === trimmed);
-    if (hit) return { ok: true, location: toResolved(hit) };
-    return notFound(trimmed);
-  }
-
-  if (/^\d{4}$/.test(trimmed)) {
-    const hit = index.postcodePrefixes.find((place) => place.value === trimmed);
-    if (hit) return { ok: true, location: toResolved(hit) };
+  const postal = parsePostalCode(trimmed);
+  if (postal) {
+    // Exact codes win; a code DGEG never published still degrades to its
+    // prefix, so 2430-304 resolves to the 2430 area (Marinha Grande).
+    if (postal.exact) {
+      const hit = index.postcodes.find((place) => place.value === postal.exact);
+      if (hit) return { ok: true, location: toResolved(hit) };
+    }
+    const prefixHit = index.postcodePrefixes.find((place) => place.value === postal.prefix);
+    if (prefixHit) return { ok: true, location: toResolved(prefixHit) };
     return notFound(trimmed);
   }
 
