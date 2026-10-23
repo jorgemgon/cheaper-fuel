@@ -44,6 +44,28 @@ describe("discount seed", () => {
     expect(expired.length).toBeGreaterThan(0);
   });
 
+  it("gives every discount a human-readable description", () => {
+    for (const entry of parsed) {
+      expect(entry.description.length, `${entry.id} needs a description`).toBeGreaterThan(20);
+    }
+  });
+
+  it("models the recurring first-Wednesday offer with a schedule", () => {
+    const intermarche = parsed.find((entry) => entry.programId === "intermarche-first-wednesday");
+    expect(intermarche?.schedule.kind).toBe("nth_weekday_of_month");
+    expect(intermarche?.schedule.weekday).toBe(3);
+    expect(intermarche?.schedule.nth).toBe(1);
+    // Unverified against an official page, so it must never move a price.
+    expect(intermarche?.confidence).toBe("medium");
+  });
+
+  it("defaults every other programme to an always-on schedule", () => {
+    const others = parsed.filter((entry) => entry.programId !== "intermarche-first-wednesday");
+    for (const entry of others) {
+      expect(entry.schedule.kind, `${entry.id} should be always-on`).toBe("always");
+    }
+  });
+
   it("quantifies the Repsol tiers from the official benefits table", () => {
     const repsol = parsed.filter((entry) => entry.programId === "repsol-motor");
     expect(repsol).toHaveLength(3);

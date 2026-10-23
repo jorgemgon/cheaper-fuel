@@ -20,6 +20,7 @@ const COLUMNS = [
   "schema_version",
   "program_id",
   "program_title",
+  "description",
   "tier_id",
   "tier_label",
   "tier_rank",
@@ -36,6 +37,11 @@ const COLUMNS = [
   "combine",
   "cap_litres_per_fill",
   "cap_litres_per_year",
+  "schedule_kind",
+  "schedule_weekdays_json",
+  "schedule_days_of_month_json",
+  "schedule_nth",
+  "schedule_weekday",
   "valid_from",
   "valid_until",
   "confidence",
@@ -69,6 +75,7 @@ function toRow(entry) {
     sqlNumber(entry.schemaVersion ?? 1),
     sqlText(entry.programId),
     sqlText(entry.programTitle),
+    sqlText(entry.description),
     sqlText(entry.tierId),
     sqlText(entry.tierLabel),
     sqlNumber(entry.tierRank ?? 0),
@@ -85,6 +92,11 @@ function toRow(entry) {
     sqlText(entry.combine ?? "sum"),
     sqlNumber(entry.caps?.litresPerFill),
     sqlNumber(entry.caps?.litresPerYear),
+    sqlText(entry.schedule?.kind ?? "always"),
+    sqlArray(entry.schedule?.weekdays),
+    sqlArray(entry.schedule?.daysOfMonth),
+    sqlNumber(entry.schedule?.nth),
+    sqlNumber(entry.schedule?.weekday),
     sqlText(entry.validFrom),
     sqlText(entry.validUntil),
     sqlText(entry.confidence),
@@ -107,7 +119,7 @@ const entries = seed.discounts ?? [];
 
 const ids = new Set();
 for (const entry of entries) {
-  for (const field of ["id", "programId", "programTitle", "kind", "supplier", "channel", "confidence"]) {
+  for (const field of ["id", "programId", "programTitle", "description", "kind", "supplier", "channel", "confidence"]) {
     if (!entry[field]) throw new Error(`seed entry ${entry.id ?? "<no id>"} is missing ${field}`);
   }
   if (ids.has(entry.id)) throw new Error(`duplicate discount id: ${entry.id}`);

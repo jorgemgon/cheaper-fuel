@@ -1,10 +1,14 @@
 import {
   DEFAULT_FILL_LITRES,
+  describeSchedule,
   discountStatus,
   isQuantified,
+  nextScheduleDate,
   parseDiscountRow,
+  scheduleMatches,
   type Discount,
   type DiscountConfidence,
+  type DiscountSchedule,
   type DiscountStatus,
 } from "./discount-schema";
 import { clamp, normalizeText, roundTo } from "./domain";
@@ -104,6 +108,7 @@ export function sanitizeProfile(input: DiscountProfileInput = {}): DiscountProfi
 export interface DiscountResolution {
   programId: string;
   programTitle: string;
+  description: string;
   tierId: string | null;
   tierLabel: string | null;
   guaranteedCents: number;
@@ -114,8 +119,19 @@ export interface DiscountResolution {
   conditions: string[];
   confidence: DiscountConfidence;
   componentIds: string[];
+  schedule: DiscountSchedule;
+  scheduleLabel: string;
   status: DiscountStatus;
   stale: boolean;
+}
+
+export interface ScheduledOffer {
+  programId: string;
+  programTitle: string;
+  description: string;
+  scheduleLabel: string;
+  nextDate: string | null;
+  confidence: DiscountConfidence;
 }
 
 export interface LockedProgramme {
@@ -129,6 +145,7 @@ export interface DiscountOutcome {
   applied: DiscountResolution | null;
   possible: DiscountResolution[];
   catalogued: DiscountResolution[];
+  scheduled: ScheduledOffer[];
   locked: LockedProgramme[];
 }
 
@@ -251,16 +268,17 @@ function buildResolution(
   );
 
   const appliedCents = aggregate(mode, cplByComponent);
+  const applicable = tierRows.filter(
+    (discount) => isQuantified(discount) && scheduleMatches(discount.schedule, today),
+  );
   const maxCents = aggregate(
     mode,
-    tierRows
-      .filter(isQuantified)
-      .map((discount) => centsPerLitre(discount, station.price, profile.fillLitres)),
+    applicable.map((discount) => centsPerLitre(discount, station.price, profile.fillLitres)),
   );
   const guaranteedCents = aggregate(
     mode,
-    tierRows
-      .filter((discount) => !isSpendTriggered(discount) && isQuantified(discount))
+    applicable
+      .filter((discount) => !isSpendTriggered(discount))
       .map((discount) => centsPerLitre(discount, station.price, profile.fillLitres)),
   );
 
@@ -273,6 +291,7 @@ function buildResolution(
   return {
     programId: head.programId,
     programTitle: head.programTitle,
+    description: head.description,
     tierId: head.tierId,
     tierLabel: head.tierLabel,
     guaranteedCents: roundTo(guaranteedCents, 2),
@@ -283,6 +302,8 @@ function buildResolution(
     conditions: uniqueConditions(tierRows),
     confidence: worstConfidence(tierRows),
     componentIds: components.map((discount) => discount.id),
+    schedule: head.schedule,
+    scheduleLabel: describeSchedule(head.schedule),
     status: discountStatus(head, today),
     stale: tierRows.some((discount) => isStale(discount, today)),
   };
@@ -295,6 +316,7 @@ function catalogueResolution(rows: Discount[], today: string): DiscountResolutio
   return {
     programId: head.programId,
     programTitle: head.programTitle,
+    description: head.description,
     tierId: head.tierId,
     tierLabel: head.tierLabel,
     guaranteedCents: 0,
@@ -305,6 +327,8 @@ function catalogueResolution(rows: Discount[], today: string): DiscountResolutio
     conditions: uniqueConditions(rows),
     confidence: worstConfidence(rows),
     componentIds: rows.map((row) => row.id),
+    schedule: head.schedule,
+    scheduleLabel: describeSchedule(head.schedule),
     status: discountStatus(head, today),
     stale: rows.some((row) => isStale(row, today)),
   };
@@ -333,7 +357,13 @@ export function resolveForStation(
   profile: DiscountProfile,
   today: string,
 ): DiscountOutcome {
-  const outcome: DiscountOutcome = { applied: null, possible: [], catalogued: [], locked: [] };
+  const outcome: DiscountOutcome = {
+    applied: null,
+    possible: [],
+    catalogued: [],
+    scheduled: [],
+    locked: [],
+  };
   if (unit !== "litro") return outcome;
 
   const matching = discounts.filter(
@@ -377,6 +407,7 @@ export function resolveForStation(
 
     let resolved: DiscountResolution | null = null;
     let locked: LockedProgramme | null = null;
+    let scheduled: ScheduledOffer | null = null;
 
     for (const tier of eligibleTiers) {
       const components = tier.filter(
@@ -401,7 +432,26 @@ export function resolveForStation(
         continue;
       }
 
-      resolved = buildResolution(components, tier, station, profile, today);
+      const todayComponents = components.filter((discount) =>
+        scheduleMatches(discount.schedule, today),
+      );
+
+      if (todayComponents.length === 0) {
+        const head = components[0];
+        if (head && scheduled === null) {
+          scheduled = {
+            programId: head.programId,
+            programTitle: head.programTitle,
+            description: head.description,
+            scheduleLabel: describeSchedule(head.schedule),
+            nextDate: nextScheduleDate(head.schedule, today),
+            confidence: worstConfidence(components),
+          };
+        }
+        continue;
+      }
+
+      resolved = buildResolution(todayComponents, tier, station, profile, today);
       if (resolved) break;
     }
 
@@ -414,6 +464,8 @@ export function resolveForStation(
       } else {
         outcome.possible.push(resolved);
       }
+    } else if (scheduled) {
+      outcome.scheduled.push(scheduled);
     } else if (locked) {
       outcome.locked.push(locked);
     }

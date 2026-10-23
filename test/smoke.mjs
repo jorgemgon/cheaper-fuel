@@ -140,6 +140,18 @@ async function main() {
     programList.every((program) => program.status === "active"),
     programList.map((program) => program.status).join(", "),
   );
+  check(
+    "every discount carries a description",
+    programList.every((program) =>
+      program.discounts.every((discount) => typeof discount.description === "string" && discount.description.length > 20),
+    ),
+  );
+  check(
+    "day-restricted programme carries its schedule",
+    programList.some((program) =>
+      program.discounts.some((discount) => discount.schedule?.kind === "nth_weekday_of_month"),
+    ),
+  );
 
   const expired = await call("list_discount_programs", { status: "expired" });
   check(
@@ -206,6 +218,23 @@ async function main() {
     "BP Poupa Mais applies with the Pingo Doce card",
     bpStations.some((station) => station.discount?.applied_cents === 4),
     bpStations.map((station) => station.discount?.applied_cents ?? 0).join(", "),
+  );
+
+  const intermarche = await call("find_stations", {
+    location: "Leiria",
+    fuels: ["diesel"],
+    brand: "intermarche",
+    cards: ["intermarche_card"],
+    limit: 3,
+  });
+  const imStations = intermarche.json.result?.fuels?.[0]?.stations ?? [];
+  const scheduled = imStations.filter((station) => (station.scheduled_discounts ?? []).length > 0);
+  check(
+    "day-restricted offer is surfaced with its schedule and next date",
+    scheduled.length > 0 || imStations.some((station) => station.discount?.applies_today === true),
+    scheduled
+      .map((station) => station.scheduled_discounts[0].next_date)
+      .join(", "),
   );
 
   await client.close();

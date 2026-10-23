@@ -6,7 +6,7 @@ import {
   sanitizeProfile,
   type StationLike,
 } from "../src/discounts";
-import { discountSchema, discountStatus, type Discount } from "../src/discount-schema";
+import { discountSchema, discountStatus, nextScheduleDate, scheduleMatches, type Discount } from "../src/discount-schema";
 
 const TODAY = "2026-10-23";
 
@@ -15,6 +15,7 @@ function makeDiscount(overrides: Partial<Discount> & { id: string }): Discount {
     schemaVersion: 1,
     programId: "test-program",
     programTitle: "Test programme",
+    description: "Test discount used by the unit tests.",
     tierId: null,
     tierLabel: null,
     tierRank: 0,
@@ -29,6 +30,7 @@ function makeDiscount(overrides: Partial<Discount> & { id: string }): Discount {
     value: 10,
     combine: "sum",
     caps: { litresPerFill: null, litresPerYear: null },
+    schedule: { kind: "always", weekdays: [], daysOfMonth: [], nth: null, weekday: null },
     validFrom: null,
     validUntil: null,
     confidence: "high",
@@ -285,6 +287,63 @@ describe("resolveForStation", () => {
     );
     expect(outcome.applied?.programId).toBe("b");
     expect(outcome.possible).toHaveLength(1);
+  });
+});
+
+describe("schedule", () => {
+  const firstWednesday = {
+    kind: "nth_weekday_of_month" as const,
+    weekdays: [],
+    daysOfMonth: [],
+    nth: 1,
+    weekday: 3,
+  };
+
+  it("matches the configured day-of-week and day-of-month rules", () => {
+    expect(scheduleMatches(firstWednesday, "2026-10-07")).toBe(true);
+    expect(scheduleMatches(firstWednesday, "2026-10-14")).toBe(false);
+    expect(
+      scheduleMatches({ kind: "weekdays", weekdays: [6, 7], daysOfMonth: [], nth: null, weekday: null }, "2026-10-24"),
+    ).toBe(true);
+    expect(
+      scheduleMatches({ kind: "day_of_month", weekdays: [], daysOfMonth: [15], nth: null, weekday: null }, "2026-10-15"),
+    ).toBe(true);
+    expect(
+      scheduleMatches({ kind: "always", weekdays: [], daysOfMonth: [], nth: null, weekday: null }, "2026-10-23"),
+    ).toBe(true);
+  });
+
+  it("finds the next date the schedule allows", () => {
+    expect(nextScheduleDate(firstWednesday, "2026-10-23")).toBe("2026-11-04");
+    expect(nextScheduleDate(firstWednesday, "2026-10-07")).toBe("2026-10-07");
+  });
+
+  it("keeps day-restricted offers out of the price and reports them", () => {
+    const outcome = resolveForStation(
+      [makeDiscount({ id: "wed", schedule: firstWednesday })],
+      galpStation,
+      "litro",
+      profile,
+      "2026-10-23",
+    );
+
+    expect(outcome.applied).toBeNull();
+    expect(outcome.scheduled).toHaveLength(1);
+    expect(outcome.scheduled[0].nextDate).toBe("2026-11-04");
+    expect(outcome.scheduled[0].scheduleLabel).toBe("first Wednesday of each month");
+  });
+
+  it("applies the offer when the schedule matches today", () => {
+    const outcome = resolveForStation(
+      [makeDiscount({ id: "wed", schedule: firstWednesday })],
+      galpStation,
+      "litro",
+      profile,
+      "2026-10-07",
+    );
+
+    expect(outcome.applied?.appliedCents).toBe(10);
+    expect(outcome.scheduled).toHaveLength(0);
   });
 });
 

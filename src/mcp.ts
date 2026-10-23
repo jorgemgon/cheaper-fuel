@@ -338,6 +338,7 @@ function resolutionPayload(resolution: DiscountResolution, unit: string | null) 
   return {
     program_id: resolution.programId,
     program_title: resolution.programTitle,
+    description: resolution.description,
     tier: resolution.tierId,
     label: resolution.tierLabel,
     guaranteed_cents: resolution.guaranteedCents,
@@ -348,6 +349,9 @@ function resolutionPayload(resolution: DiscountResolution, unit: string | null) 
     saves_eur_per_fill: resolution.savesEurPerFill,
     conditions: resolution.conditions,
     confidence: resolution.confidence,
+    schedule: resolution.schedule,
+    schedule_label: resolution.scheduleLabel,
+    applies_today: true,
     stale: resolution.stale,
   };
 }
@@ -357,6 +361,17 @@ function discountExtras(outcome: DiscountOutcome, unit: string | null): Record<s
   if (outcome.applied) extras.discount = resolutionPayload(outcome.applied, unit);
   if (outcome.possible.length > 0) {
     extras.possible_discounts = outcome.possible.slice(0, 2).map((entry) => resolutionPayload(entry, unit));
+  }
+  if (outcome.scheduled.length > 0) {
+    extras.scheduled_discounts = outcome.scheduled.slice(0, 2).map((entry) => ({
+      program_id: entry.programId,
+      program_title: entry.programTitle,
+      description: entry.description,
+      schedule_label: entry.scheduleLabel,
+      next_date: entry.nextDate,
+      confidence: entry.confidence,
+      applies_today: false,
+    }));
   }
   if (outcome.catalogued.length > 0) {
     extras.catalogued_discounts = outcome.catalogued.slice(0, 2).map((entry) => resolutionPayload(entry, unit));
@@ -1212,6 +1227,7 @@ export function createServer(env: Env): McpServer {
               stale: group.stale,
               discounts: group.discounts.map((discount) => ({
                 id: discount.id,
+                description: discount.description,
                 tier: discount.tierId,
                 tier_label: discount.tierLabel,
                 min_services: discount.minServices,
@@ -1221,6 +1237,7 @@ export function createServer(env: Env): McpServer {
                 combine: discount.combine,
                 caps: discount.caps,
                 requires: discount.requires,
+                schedule: discount.schedule,
                 valid_from: discount.validFrom,
                 valid_until: discount.validUntil,
                 status: discount.status,
