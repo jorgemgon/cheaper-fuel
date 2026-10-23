@@ -469,16 +469,7 @@ async function runInitialSearch(): Promise<void> {
 
         <template v-else-if="result">
           <div class="row" style="justify-content: space-between">
-            <h2>
-              {{ countLabel }}
-              <template v-if="covered.length > 0">
-                · {{ covered.length }} {{ covered.length === 1 ? "concelho" : "concelhos" }}
-              </template>
-              <template v-if="multipleFuels">
-                · {{ visibleFuelGroups.length }}
-                {{ visibleFuelGroups.length === 1 ? "combustível" : "combustíveis" }}
-              </template>
-            </h2>
+            <h2>{{ countLabel }}</h2>
             <div class="row" style="gap: 0.35rem; justify-content: flex-end">
               <span v-if="loading" class="badge">a atualizar…</span>
               <span v-if="effectiveRadius" class="badge">raio {{ effectiveRadius }} km</span>
@@ -487,6 +478,7 @@ async function runInitialSearch(): Promise<void> {
 
           <p v-if="truncatedFuels.length > 0" class="tiny muted">{{ limitNotice }}</p>
           <p v-if="covered.length > 0" class="tiny muted">
+            {{ covered.length === 1 ? "Concelho" : "Concelhos" }}:
             {{ covered.map((entry) => entry.municipality).join(", ") }}
           </p>
 
