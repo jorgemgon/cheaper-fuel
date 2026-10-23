@@ -55,9 +55,21 @@ const serviceOptions = computed(() =>
   profileOptions.value.filter((option) => option.group === "service"),
 );
 
-const stations = computed<StationInfo[]>(() =>
-  (result.value?.result.fuels ?? []).flatMap((fuel) => fuel.stations),
+const fuels = computed(() => result.value?.result.fuels ?? []);
+// One row per station+fuel: the same station can appear once per selected fuel,
+// so the fuel name travels with the entry and is part of the list key.
+const stationRows = computed(() =>
+  fuels.value.flatMap((fuel) =>
+    fuel.stations.map((station) => ({
+      key: `${station.id}-${fuel.fuel}`,
+      station,
+      fuel: fuel.fuel,
+    })),
+  ),
 );
+const stations = computed<StationInfo[]>(() => stationRows.value.map((row) => row.station));
+const multipleFuels = computed(() => fuels.value.length > 1);
+const distinctStations = computed(() => new Set(stations.value.map((station) => station.id)).size);
 const covered = computed(() => result.value?.result.municipalities_covered ?? []);
 const effectiveRadius = computed(() => result.value?.result.effective_radius_km ?? null);
 const discountsUnavailable = computed(() => result.value?.discounts_unavailable ?? null);
@@ -65,15 +77,14 @@ const discountsUnavailable = computed(() => result.value?.discounts_unavailable 
 // Never let the per-fuel cap stay invisible: a station can be found in the
 // radius and still not be returned because of the results limit.
 const truncatedFuels = computed(() =>
-  (result.value?.result.fuels ?? []).filter((fuel) => fuel.stations_found > fuel.stations.length),
+  fuels.value.filter((fuel) => fuel.stations_found > fuel.stations.length),
 );
 const countLabel = computed(() => {
-  const fuels = result.value?.result.fuels ?? [];
-  const only = fuels.length === 1 ? fuels[0] : null;
+  const only = fuels.value.length === 1 ? fuels.value[0] : null;
   if (only && only.stations_found > only.stations.length) {
     return `${only.stations.length} de ${only.stations_found} postos`;
   }
-  return `${stations.value.length} postos`;
+  return `${distinctStations.value} postos`;
 });
 
 const LIMIT_OPTIONS: Array<{ value: ResultLimit; label: string }> = [
@@ -392,13 +403,14 @@ async function runInitialSearch(): Promise<void> {
     </div>
 
     <div v-else-if="result" class="explore-layout">
-      <MapPanel :stations="stations" :user-location="searchedFrom === 'geo' ? geoCoords : null" />
+      <MapPanel :rows="stationRows" :user-location="searchedFrom === 'geo' ? geoCoords : null" />
 
       <div class="stack">
         <div class="row" style="justify-content: space-between">
           <h2>
             {{ countLabel }}
             <template v-if="covered.length > 0"> · {{ covered.length }} concelhos</template>
+            <template v-if="multipleFuels"> · {{ fuels.length }} combustíveis</template>
           </h2>
           <span v-if="effectiveRadius" class="badge">raio {{ effectiveRadius }} km</span>
         </div>
@@ -421,9 +433,10 @@ async function runInitialSearch(): Promise<void> {
         />
 
         <StationCard
-          v-for="station in stations"
-          :key="`${station.id}-${station.unit}`"
-          :station="station"
+          v-for="row in stationRows"
+          :key="row.key"
+          :station="row.station"
+          :fuel="multipleFuels ? row.fuel : null"
           @focus="() => undefined"
         />
 
