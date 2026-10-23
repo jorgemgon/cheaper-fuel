@@ -15,6 +15,19 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+// /health deliberately bypasses the cache so it exercises the live upstream,
+// which would otherwise let anyone hammer DGEG through this endpoint.
+const HEALTH_PROBE_TTL_MS = 60_000;
+let healthMemo: { at: number; reachable: boolean } | null = null;
+
+async function probeUpstream(dgeg: ReturnType<typeof createDgegContext>): Promise<boolean> {
+  const now = Date.now();
+  if (!healthMemo || now - healthMemo.at > HEALTH_PROBE_TTL_MS) {
+    healthMemo = { at: now, reachable: await pingUpstream(dgeg) };
+  }
+  return healthMemo.reachable;
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
@@ -25,7 +38,7 @@ export default {
 
     if (url.pathname === "/health") {
       const dgeg = createDgegContext(env);
-      const reachable = await pingUpstream(dgeg);
+      const reachable = await probeUpstream(dgeg);
       return json({
         status: reachable ? "ok" : "degraded",
         service: SERVER_NAME,

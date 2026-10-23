@@ -242,6 +242,8 @@ function filterRows(rows: readonly SnapshotRow[], filters: RowFilters): Snapshot
     if (!fuelKeys.has(normalizeText(row.fuel))) return false;
     if (brandKey) {
       const rowBrand = normalizeText(row.brand ?? "");
+      // A brand filter must never match stations with an unknown brand.
+      if (!rowBrand) return false;
       if (!rowBrand.includes(brandKey) && !brandKey.includes(rowBrand)) return false;
     }
     if (filters.stationType && !matchesStationType(row, filters.stationType)) return false;
@@ -357,7 +359,10 @@ export function createServer(env: Env): McpServer {
           .max(8760)
           .optional()
           .describe("Only prices updated within this many hours, e.g. 24."),
-        sort: z.enum(["distance", "price"]).optional().describe("Rank by distance (default in proximity) or price."),
+        sort: z
+          .enum(["distance", "price"])
+          .optional()
+          .describe("Rank by distance (proximity searches) or price. Region rankings are always by price."),
       }),
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
@@ -533,10 +538,9 @@ export function createServer(env: Env): McpServer {
         const fuelResults = fuels.map((fuel) => {
           const unit = fuel.unit;
           const rowsForFuel = regionRows.filter((row) => normalizeText(row.fuel) === normalizeText(fuel.name));
-          const cheapest =
-            sort === "price"
-              ? sortByPrice(rowsForFuel, limit)
-              : [...rowsForFuel].sort((a, b) => a.name.localeCompare(b.name, "pt")).slice(0, limit);
+          // Without a reference point, distance ranking is meaningless: region
+          // rankings are always by price.
+          const cheapest = sortByPrice(rowsForFuel, limit);
 
           return {
             fuel: fuel.name,
