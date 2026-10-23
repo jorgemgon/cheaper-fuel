@@ -20,7 +20,8 @@ const COLUMNS = [
   "schema_version",
   "program_id",
   "program_title",
-  "description",
+  "description_en",
+  "description_pt",
   "tier_id",
   "tier_label",
   "tier_rank",
@@ -75,7 +76,8 @@ function toRow(entry) {
     sqlNumber(entry.schemaVersion ?? 1),
     sqlText(entry.programId),
     sqlText(entry.programTitle),
-    sqlText(entry.description),
+    sqlText(entry.description?.en),
+    sqlText(entry.description?.pt),
     sqlText(entry.tierId),
     sqlText(entry.tierLabel),
     sqlNumber(entry.tierRank ?? 0),
@@ -119,8 +121,11 @@ const entries = seed.discounts ?? [];
 
 const ids = new Set();
 for (const entry of entries) {
-  for (const field of ["id", "programId", "programTitle", "description", "kind", "supplier", "channel", "confidence"]) {
+  for (const field of ["id", "programId", "programTitle", "kind", "supplier", "channel", "confidence"]) {
     if (!entry[field]) throw new Error(`seed entry ${entry.id ?? "<no id>"} is missing ${field}`);
+  }
+  if (!entry.description?.en || !entry.description?.pt) {
+    throw new Error(`seed entry ${entry.id ?? "<no id>"} needs description.en and description.pt`);
   }
   if (ids.has(entry.id)) throw new Error(`duplicate discount id: ${entry.id}`);
   ids.add(entry.id);

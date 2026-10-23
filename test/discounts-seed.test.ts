@@ -44,9 +44,10 @@ describe("discount seed", () => {
     expect(expired.length).toBeGreaterThan(0);
   });
 
-  it("gives every discount a human-readable description", () => {
+  it("gives every discount a description in both locales", () => {
     for (const entry of parsed) {
-      expect(entry.description.length, `${entry.id} needs a description`).toBeGreaterThan(20);
+      expect(entry.description.en.length, `${entry.id} needs an English description`).toBeGreaterThan(20);
+      expect(entry.description.pt.length, `${entry.id} needs a Portuguese description`).toBeGreaterThan(20);
     }
   });
 

@@ -97,11 +97,12 @@ export const api = {
   },
 
   stations(query: StationQuery): Promise<FindStationsResult> {
-    return request<FindStationsResult>("/api/stations", { ...query });
+    // The dashboard UI is pt-PT, so ask for Portuguese discount descriptions.
+    return request<FindStationsResult>("/api/stations", { ...query, lang: "pt" });
   },
 
   station(stationId: number, profile: DiscountProfileQuery = {}): Promise<StationDetailsResult> {
-    return request<StationDetailsResult>(`/api/stations/${stationId}`, { ...profile });
+    return request<StationDetailsResult>(`/api/stations/${stationId}`, { ...profile, lang: "pt" });
   },
 
   market(params: { fuels?: string[]; district?: string; municipality?: string }): Promise<MarketOverviewResult> {
@@ -121,7 +122,7 @@ export const api = {
       quantified_only?: boolean;
     } = {},
   ): Promise<DiscountsResult> {
-    return request<DiscountsResult>("/api/discounts", { ...params });
+    return request<DiscountsResult>("/api/discounts", { ...params, lang: "pt" });
   },
 
   locations(params: { query?: string; district?: string; limit?: number }): Promise<LocationsResult> {

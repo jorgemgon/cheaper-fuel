@@ -9,7 +9,8 @@ function row(overrides: Record<string, unknown> = {}): Record<string, unknown> {
     schema_version: 1,
     program_id: "galp-test",
     program_title: "Test",
-    description: "A test discount used by the repository tests.",
+    description_en: "A test discount used by the repository tests.",
+    description_pt: "Um desconto de teste usado pelos testes do repositório.",
     tier_id: null,
     tier_label: null,
     tier_rank: 0,
@@ -78,6 +79,10 @@ describe("loadDiscounts", () => {
       value: 10,
     });
     expect(loaded.updatedAt).toBe("2026-10-23");
+    expect(loaded.discounts[0].description).toEqual({
+      en: "A test discount used by the repository tests.",
+      pt: "Um desconto de teste usado pelos testes do repositório.",
+    });
   });
 
   it("degrades when the binding is absent", async () => {

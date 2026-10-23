@@ -281,36 +281,59 @@ function stationPayload(
   };
 }
 
+export type Locale = "en" | "pt";
+
+function resolveLang(value: string | undefined): Locale {
+  return value === "pt" ? "pt" : "en";
+}
+
 interface DiscountContext {
   discounts: DiscountRegistry["discounts"];
   registryUpdatedAt: string | null;
   profile: DiscountProfile;
   today: string;
+  lang: Locale;
   unavailable: string | null;
 }
 
-async function loadDiscountContext(env: Env, input: DiscountProfileInput): Promise<DiscountContext> {
+async function loadDiscountContext(
+  env: Env,
+  input: DiscountProfileInput,
+  lang: string | undefined,
+): Promise<DiscountContext> {
   const today = lisbonToday();
   const profile = sanitizeProfile(input);
   const loaded = await loadDiscounts(env);
 
   if (!loaded.ok) {
-    return { discounts: [], registryUpdatedAt: null, profile, today, unavailable: loaded.reason };
+    return {
+      discounts: [],
+      registryUpdatedAt: null,
+      profile,
+      today,
+      lang: resolveLang(lang),
+      unavailable: loaded.reason,
+    };
   }
   return {
     discounts: loaded.discounts,
     registryUpdatedAt: loaded.updatedAt,
     profile,
     today,
+    lang: resolveLang(lang),
     unavailable: null,
   };
 }
 
-function resolutionPayload(resolution: DiscountResolution, unit: string | null): DiscountInfo {
+function resolutionPayload(
+  resolution: DiscountResolution,
+  unit: string | null,
+  lang: Locale,
+): DiscountInfo {
   return {
     program_id: resolution.programId,
     program_title: resolution.programTitle,
-    description: resolution.description,
+    description: resolution.description[lang],
     tier: resolution.tierId,
     label: resolution.tierLabel,
     guaranteed_cents: resolution.guaranteedCents,
@@ -328,18 +351,24 @@ function resolutionPayload(resolution: DiscountResolution, unit: string | null):
   };
 }
 
-function discountExtras(outcome: DiscountOutcome, unit: string | null): Partial<StationInfo> {
+function discountExtras(
+  outcome: DiscountOutcome,
+  unit: string | null,
+  lang: Locale,
+): Partial<StationInfo> {
   const extras: Partial<StationInfo> = {};
-  if (outcome.applied) extras.discount = resolutionPayload(outcome.applied, unit);
+  if (outcome.applied) extras.discount = resolutionPayload(outcome.applied, unit, lang);
   if (outcome.possible.length > 0) {
-    extras.possible_discounts = outcome.possible.slice(0, 2).map((entry) => resolutionPayload(entry, unit));
+    extras.possible_discounts = outcome.possible
+      .slice(0, 2)
+      .map((entry) => resolutionPayload(entry, unit, lang));
   }
   if (outcome.scheduled.length > 0) {
     extras.scheduled_discounts = outcome.scheduled.slice(0, 2).map(
       (entry): ScheduledDiscountInfo => ({
         program_id: entry.programId,
         program_title: entry.programTitle,
-        description: entry.description,
+        description: entry.description[lang],
         schedule_label: entry.scheduleLabel,
         next_date: entry.nextDate,
         confidence: entry.confidence,
@@ -348,7 +377,9 @@ function discountExtras(outcome: DiscountOutcome, unit: string | null): Partial<
     );
   }
   if (outcome.catalogued.length > 0) {
-    extras.catalogued_discounts = outcome.catalogued.slice(0, 2).map((entry) => resolutionPayload(entry, unit));
+    extras.catalogued_discounts = outcome.catalogued
+      .slice(0, 2)
+      .map((entry) => resolutionPayload(entry, unit, lang));
   }
   if (outcome.locked.length > 0) {
     extras.locked_discounts = outcome.locked.slice(0, 2);
@@ -370,7 +401,7 @@ function stationEntry(
   );
 
   return {
-    payload: stationPayload(row, unit, discountExtras(outcome, unit)),
+    payload: stationPayload(row, unit, discountExtras(outcome, unit, context.lang)),
     effectivePrice: outcome.applied?.effectivePriceEur ?? row.price ?? Number.POSITIVE_INFINITY,
   };
 }
@@ -531,12 +562,16 @@ export async function findStations(env: Env, args: FindStationsArgs): Promise<Fi
     const sort = args.sort ?? "distance";
     const wantsEffectiveSort = sort === "effective_price";
 
-    const discountContext = await loadDiscountContext(env, {
-      cards: args.cards,
-      services: args.services,
-      fillLitres: args.fill_litres,
-      mode: args.discount_mode,
-    });
+    const discountContext = await loadDiscountContext(
+      env,
+      {
+        cards: args.cards,
+        services: args.services,
+        fillLitres: args.fill_litres,
+        mode: args.discount_mode,
+      },
+      args.lang,
+    );
 
     const proximity = searchProximity({
       rows: filtered,
@@ -626,12 +661,16 @@ export async function findStations(env: Env, args: FindStationsArgs): Promise<Fi
   const sort = args.sort ?? "price";
   const wantsEffectiveSort = sort === "effective_price";
 
-  const discountContext = await loadDiscountContext(env, {
-    cards: args.cards,
-    services: args.services,
-    fillLitres: args.fill_litres,
-    mode: args.discount_mode,
-  });
+  const discountContext = await loadDiscountContext(
+    env,
+    {
+      cards: args.cards,
+      services: args.services,
+      fillLitres: args.fill_litres,
+      mode: args.discount_mode,
+    },
+    args.lang,
+  );
 
   const fuelResults: FuelStationList[] = fuels.map((fuel) => {
     const unit = fuel.unit;
@@ -731,12 +770,16 @@ export async function getStationDetails(env: Env, args: StationDetailsArgs): Pro
     });
   }
 
-  const discountContext = await loadDiscountContext(env, {
-    cards: args.cards,
-    services: args.services,
-    fillLitres: args.fill_litres,
-    mode: args.discount_mode,
-  });
+  const discountContext = await loadDiscountContext(
+    env,
+    {
+      cards: args.cards,
+      services: args.services,
+      fillLitres: args.fill_litres,
+      mode: args.discount_mode,
+    },
+    args.lang,
+  );
 
   const station: StationDetail = {
     ...detail,
@@ -751,7 +794,7 @@ export async function getStationDetails(env: Env, args: StationDetailsArgs): Pro
       return {
         ...fuel,
         price_display: formatPrice(fuel.price, fuel.unit),
-        ...discountExtras(outcome, fuel.unit),
+        ...discountExtras(outcome, fuel.unit, discountContext.lang),
       };
     }),
     maps_url:
@@ -946,6 +989,7 @@ export async function listDiscountPrograms(env: Env, args: DiscountProgramsArgs)
   }
 
   const today = lisbonToday();
+  const lang = resolveLang(args.lang);
   const statusFilter = args.status ?? "active";
   const supplierKey = args.supplier ? normalizeText(args.supplier) : null;
   const partnerKey = args.partner ? normalizeText(args.partner) : null;
@@ -967,6 +1011,7 @@ export async function listDiscountPrograms(env: Env, args: DiscountProgramsArgs)
       partner: args.partner ?? null,
       kind: args.kind ?? null,
       status: statusFilter,
+      lang,
     },
     result: {
       status_note:
@@ -983,7 +1028,7 @@ export async function listDiscountPrograms(env: Env, args: DiscountProgramsArgs)
         stale: group.stale,
         discounts: group.discounts.map((discount) => ({
           id: discount.id,
-          description: discount.description,
+          description: discount.description[lang],
           tier: discount.tierId,
           tier_label: discount.tierLabel,
           min_services: discount.minServices,

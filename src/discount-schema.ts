@@ -94,7 +94,10 @@ export const discountSchema = z
     schemaVersion: z.literal(DISCOUNT_SCHEMA_VERSION).default(DISCOUNT_SCHEMA_VERSION),
     programId: z.string().min(1),
     programTitle: z.string().min(1),
-    description: z.string().min(10, "every discount needs a human-readable description"),
+    description: z.object({
+      en: z.string().min(10, "every discount needs an English description"),
+      pt: z.string().min(10, "every discount needs a Portuguese description"),
+    }),
     tierId: z.string().nullable().default(null),
     tierLabel: z.string().nullable().default(null),
     tierRank: z.number().int().min(0).default(0),
@@ -264,7 +267,10 @@ export function parseDiscountRow(row: Record<string, unknown>): Discount {
     schemaVersion: Number(row.schema_version ?? DISCOUNT_SCHEMA_VERSION),
     programId: row.program_id,
     programTitle: row.program_title,
-    description: row.description,
+    description: {
+      en: String(row.description_en ?? ""),
+      pt: String(row.description_pt ?? ""),
+    },
     tierId: nullableString(row.tier_id),
     tierLabel: nullableString(row.tier_label),
     tierRank: Number(row.tier_rank ?? 0),

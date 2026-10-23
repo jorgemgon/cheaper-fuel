@@ -8,22 +8,49 @@
       "schemaVersion": 1,
       "programId": "galp-combina",
       "programTitle": "COMBINA",
-      "description": "Permanent 8 c/L discount applied through the Mundo Galp app on every fill, for COMBINA customers holding a Cartão Continente and one Galp or NOS service.",
+      "description": {
+        "en": "Permanent 8 c/L discount applied through the Mundo Galp app on every fill, for COMBINA customers holding a Cartão Continente and one Galp or NOS service.",
+        "pt": "Desconto permanente de 8 cênt./L aplicado através da app Mundo Galp em cada abastecimento, para clientes COMBINA com Cartão Continente e um serviço Galp ou NOS."
+      },
       "tierId": "combina-1",
       "tierLabel": "1 serviço",
       "tierRank": 1,
       "kind": "loyalty_tier",
       "supplier": "GALP",
-      "partners": ["CONTINENTE", "NOS"],
-      "stationMatch": { "brands": ["GALP"], "namePrefixes": ["Galp", "PA GALP", "PB GALP"] },
-      "requires": ["continente_card", "mundo_galp_app"],
+      "partners": [
+        "CONTINENTE",
+        "NOS"
+      ],
+      "stationMatch": {
+        "brands": [
+          "GALP"
+        ],
+        "namePrefixes": [
+          "Galp",
+          "PA GALP",
+          "PB GALP"
+        ]
+      },
+      "requires": [
+        "continente_card",
+        "mundo_galp_app"
+      ],
       "minServices": 1,
       "channel": "app",
       "valueType": "cents_per_litre",
       "value": 8,
       "combine": "sum",
-      "caps": { "litresPerFill": null, "litresPerYear": 7000 },
-      "schedule": { "kind": "always", "weekdays": [], "daysOfMonth": [], "nth": null, "weekday": null },
+      "caps": {
+        "litresPerFill": null,
+        "litresPerYear": 7000
+      },
+      "schedule": {
+        "kind": "always",
+        "weekdays": [],
+        "daysOfMonth": [],
+        "nth": null,
+        "weekday": null
+      },
       "validFrom": null,
       "validUntil": null,
       "confidence": "high",
@@ -41,22 +68,49 @@
       "schemaVersion": 1,
       "programId": "galp-combina",
       "programTitle": "COMBINA",
-      "description": "12 c/L coupon credited to the Cartão Continente after a grocery shop of at least €30 (€25 at Continente Bom Dia) and redeemed on the next Galp fill.",
+      "description": {
+        "en": "12 c/L coupon credited to the Cartão Continente after a grocery shop of at least €30 (€25 at Continente Bom Dia) and redeemed on the next Galp fill.",
+        "pt": "Cupão de 12 cênt./L creditado no Cartão Continente após uma compra de pelo menos 30 € (25 € no Continente Bom Dia), para usar no abastecimento seguinte na Galp."
+      },
       "tierId": "combina-1",
       "tierLabel": "1 serviço",
       "tierRank": 1,
       "kind": "loyalty_tier",
       "supplier": "GALP",
-      "partners": ["CONTINENTE", "NOS"],
-      "stationMatch": { "brands": ["GALP"], "namePrefixes": ["Galp", "PA GALP", "PB GALP"] },
-      "requires": ["continente_card", "spend:continente_30"],
+      "partners": [
+        "CONTINENTE",
+        "NOS"
+      ],
+      "stationMatch": {
+        "brands": [
+          "GALP"
+        ],
+        "namePrefixes": [
+          "Galp",
+          "PA GALP",
+          "PB GALP"
+        ]
+      },
+      "requires": [
+        "continente_card",
+        "spend:continente_30"
+      ],
       "minServices": 1,
       "channel": "coupon",
       "valueType": "cents_per_litre",
       "value": 12,
       "combine": "sum",
-      "caps": { "litresPerFill": 60, "litresPerYear": null },
-      "schedule": { "kind": "always", "weekdays": [], "daysOfMonth": [], "nth": null, "weekday": null },
+      "caps": {
+        "litresPerFill": 60,
+        "litresPerYear": null
+      },
+      "schedule": {
+        "kind": "always",
+        "weekdays": [],
+        "daysOfMonth": [],
+        "nth": null,
+        "weekday": null
+      },
       "validFrom": null,
       "validUntil": null,
       "confidence": "high",
@@ -74,22 +128,49 @@
       "schemaVersion": 1,
       "programId": "galp-combina",
       "programTitle": "COMBINA",
-      "description": "Permanent 10 c/L discount via the Mundo Galp app for COMBINA customers combining two Galp or NOS services.",
+      "description": {
+        "en": "Permanent 10 c/L discount via the Mundo Galp app for COMBINA customers combining two Galp or NOS services.",
+        "pt": "Desconto permanente de 10 cênt./L através da app Mundo Galp para clientes COMBINA que combinem dois serviços Galp ou NOS."
+      },
       "tierId": "combina-2",
       "tierLabel": "2 serviços",
       "tierRank": 2,
       "kind": "loyalty_tier",
       "supplier": "GALP",
-      "partners": ["CONTINENTE", "NOS"],
-      "stationMatch": { "brands": ["GALP"], "namePrefixes": ["Galp", "PA GALP", "PB GALP"] },
-      "requires": ["continente_card", "mundo_galp_app"],
+      "partners": [
+        "CONTINENTE",
+        "NOS"
+      ],
+      "stationMatch": {
+        "brands": [
+          "GALP"
+        ],
+        "namePrefixes": [
+          "Galp",
+          "PA GALP",
+          "PB GALP"
+        ]
+      },
+      "requires": [
+        "continente_card",
+        "mundo_galp_app"
+      ],
       "minServices": 2,
       "channel": "app",
       "valueType": "cents_per_litre",
       "value": 10,
       "combine": "sum",
-      "caps": { "litresPerFill": null, "litresPerYear": 7000 },
-      "schedule": { "kind": "always", "weekdays": [], "daysOfMonth": [], "nth": null, "weekday": null },
+      "caps": {
+        "litresPerFill": null,
+        "litresPerYear": 7000
+      },
+      "schedule": {
+        "kind": "always",
+        "weekdays": [],
+        "daysOfMonth": [],
+        "nth": null,
+        "weekday": null
+      },
       "validFrom": null,
       "validUntil": null,
       "confidence": "high",
@@ -107,22 +188,49 @@
       "schemaVersion": 1,
       "programId": "galp-combina",
       "programTitle": "COMBINA",
-      "description": "15 c/L coupon after a Continente shop of at least €30, for COMBINA customers combining two services.",
+      "description": {
+        "en": "15 c/L coupon after a Continente shop of at least €30, for COMBINA customers combining two services.",
+        "pt": "Cupão de 15 cênt./L após uma compra de pelo menos 30 € no Continente, para clientes COMBINA com dois serviços."
+      },
       "tierId": "combina-2",
       "tierLabel": "2 serviços",
       "tierRank": 2,
       "kind": "loyalty_tier",
       "supplier": "GALP",
-      "partners": ["CONTINENTE", "NOS"],
-      "stationMatch": { "brands": ["GALP"], "namePrefixes": ["Galp", "PA GALP", "PB GALP"] },
-      "requires": ["continente_card", "spend:continente_30"],
+      "partners": [
+        "CONTINENTE",
+        "NOS"
+      ],
+      "stationMatch": {
+        "brands": [
+          "GALP"
+        ],
+        "namePrefixes": [
+          "Galp",
+          "PA GALP",
+          "PB GALP"
+        ]
+      },
+      "requires": [
+        "continente_card",
+        "spend:continente_30"
+      ],
       "minServices": 2,
       "channel": "coupon",
       "valueType": "cents_per_litre",
       "value": 15,
       "combine": "sum",
-      "caps": { "litresPerFill": 60, "litresPerYear": null },
-      "schedule": { "kind": "always", "weekdays": [], "daysOfMonth": [], "nth": null, "weekday": null },
+      "caps": {
+        "litresPerFill": 60,
+        "litresPerYear": null
+      },
+      "schedule": {
+        "kind": "always",
+        "weekdays": [],
+        "daysOfMonth": [],
+        "nth": null,
+        "weekday": null
+      },
       "validFrom": null,
       "validUntil": null,
       "confidence": "high",
@@ -140,22 +248,49 @@
       "schemaVersion": 1,
       "programId": "galp-combina",
       "programTitle": "COMBINA",
-      "description": "Permanent 10 c/L app discount for COMBINA customers combining three or more Galp or NOS services.",
+      "description": {
+        "en": "Permanent 10 c/L app discount for COMBINA customers combining three or more Galp or NOS services.",
+        "pt": "Desconto permanente de 10 cênt./L na app para clientes COMBINA que combinem três ou mais serviços Galp ou NOS."
+      },
       "tierId": "combina-3",
       "tierLabel": "3+ serviços",
       "tierRank": 3,
       "kind": "loyalty_tier",
       "supplier": "GALP",
-      "partners": ["CONTINENTE", "NOS"],
-      "stationMatch": { "brands": ["GALP"], "namePrefixes": ["Galp", "PA GALP", "PB GALP"] },
-      "requires": ["continente_card", "mundo_galp_app"],
+      "partners": [
+        "CONTINENTE",
+        "NOS"
+      ],
+      "stationMatch": {
+        "brands": [
+          "GALP"
+        ],
+        "namePrefixes": [
+          "Galp",
+          "PA GALP",
+          "PB GALP"
+        ]
+      },
+      "requires": [
+        "continente_card",
+        "mundo_galp_app"
+      ],
       "minServices": 3,
       "channel": "app",
       "valueType": "cents_per_litre",
       "value": 10,
       "combine": "sum",
-      "caps": { "litresPerFill": null, "litresPerYear": 7000 },
-      "schedule": { "kind": "always", "weekdays": [], "daysOfMonth": [], "nth": null, "weekday": null },
+      "caps": {
+        "litresPerFill": null,
+        "litresPerYear": 7000
+      },
+      "schedule": {
+        "kind": "always",
+        "weekdays": [],
+        "daysOfMonth": [],
+        "nth": null,
+        "weekday": null
+      },
       "validFrom": null,
       "validUntil": null,
       "confidence": "high",
@@ -173,22 +308,49 @@
       "schemaVersion": 1,
       "programId": "galp-combina",
       "programTitle": "COMBINA",
-      "description": "20 c/L coupon after a Continente shop of at least €30, for COMBINA customers on the top tier (three or more services).",
+      "description": {
+        "en": "20 c/L coupon after a Continente shop of at least €30, for COMBINA customers on the top tier (three or more services).",
+        "pt": "Cupão de 20 cênt./L após uma compra de pelo menos 30 € no Continente, para clientes COMBINA no nível superior (três ou mais serviços)."
+      },
       "tierId": "combina-3",
       "tierLabel": "3+ serviços",
       "tierRank": 3,
       "kind": "loyalty_tier",
       "supplier": "GALP",
-      "partners": ["CONTINENTE", "NOS"],
-      "stationMatch": { "brands": ["GALP"], "namePrefixes": ["Galp", "PA GALP", "PB GALP"] },
-      "requires": ["continente_card", "spend:continente_30"],
+      "partners": [
+        "CONTINENTE",
+        "NOS"
+      ],
+      "stationMatch": {
+        "brands": [
+          "GALP"
+        ],
+        "namePrefixes": [
+          "Galp",
+          "PA GALP",
+          "PB GALP"
+        ]
+      },
+      "requires": [
+        "continente_card",
+        "spend:continente_30"
+      ],
       "minServices": 3,
       "channel": "coupon",
       "valueType": "cents_per_litre",
       "value": 20,
       "combine": "sum",
-      "caps": { "litresPerFill": 60, "litresPerYear": null },
-      "schedule": { "kind": "always", "weekdays": [], "daysOfMonth": [], "nth": null, "weekday": null },
+      "caps": {
+        "litresPerFill": 60,
+        "litresPerYear": null
+      },
+      "schedule": {
+        "kind": "always",
+        "weekdays": [],
+        "daysOfMonth": [],
+        "nth": null,
+        "weekday": null
+      },
       "validFrom": null,
       "validUntil": null,
       "confidence": "high",
@@ -206,22 +368,43 @@
       "schemaVersion": 1,
       "programId": "repsol-motor",
       "programTitle": "Plano Motor",
-      "description": "8 c/L off at Repsol stations with the Repsol partner card on the base Plano Motor (the page advertises up to 10 c/L).",
+      "description": {
+        "en": "8 c/L off at Repsol stations with the Repsol partner card on the base Plano Motor (the page advertises up to 10 c/L).",
+        "pt": "8 cênt./L de desconto nos postos Repsol com o cartão de parceiro Repsol no Plano Motor base (a página anuncia até 10 cênt./L)."
+      },
       "tierId": null,
       "tierLabel": null,
       "tierRank": 0,
       "kind": "loyalty_tier",
       "supplier": "REPSOL",
       "partners": [],
-      "stationMatch": { "brands": ["REPSOL"], "namePrefixes": ["Repsol"] },
-      "requires": ["repsol_partner_card"],
+      "stationMatch": {
+        "brands": [
+          "REPSOL"
+        ],
+        "namePrefixes": [
+          "Repsol"
+        ]
+      },
+      "requires": [
+        "repsol_partner_card"
+      ],
       "minServices": 0,
       "channel": "instant",
       "valueType": "cents_per_litre",
       "value": 8,
       "combine": "sum",
-      "caps": { "litresPerFill": null, "litresPerYear": null },
-      "schedule": { "kind": "always", "weekdays": [], "daysOfMonth": [], "nth": null, "weekday": null },
+      "caps": {
+        "litresPerFill": null,
+        "litresPerYear": null
+      },
+      "schedule": {
+        "kind": "always",
+        "weekdays": [],
+        "daysOfMonth": [],
+        "nth": null,
+        "weekday": null
+      },
       "validFrom": null,
       "validUntil": null,
       "confidence": "high",
@@ -239,22 +422,44 @@
       "schemaVersion": 1,
       "programId": "repsol-motor",
       "programTitle": "Plano Motor e Luz",
-      "description": "13 c/L off at Repsol stations with the partner card when Repsol supplies the customer's electricity (advertised as up to 15 c/L), plus 2% of the electricity bill in My Repsol balance.",
+      "description": {
+        "en": "13 c/L off at Repsol stations with the partner card when Repsol supplies the customer's electricity (advertised as up to 15 c/L), plus 2% of the electricity bill in My Repsol balance.",
+        "pt": "13 cênt./L de desconto nos postos Repsol com o cartão de parceiro quando a Repsol fornece a eletricidade (anunciado até 15 cênt./L), mais 2% da fatura de eletricidade em saldo My Repsol."
+      },
       "tierId": "motor-luz",
       "tierLabel": "Com eletricidade",
       "tierRank": 1,
       "kind": "loyalty_tier",
       "supplier": "REPSOL",
       "partners": [],
-      "stationMatch": { "brands": ["REPSOL"], "namePrefixes": ["Repsol"] },
-      "requires": ["repsol_partner_card", "repsol_electricity"],
+      "stationMatch": {
+        "brands": [
+          "REPSOL"
+        ],
+        "namePrefixes": [
+          "Repsol"
+        ]
+      },
+      "requires": [
+        "repsol_partner_card",
+        "repsol_electricity"
+      ],
       "minServices": 1,
       "channel": "instant",
       "valueType": "cents_per_litre",
       "value": 13,
       "combine": "sum",
-      "caps": { "litresPerFill": null, "litresPerYear": null },
-      "schedule": { "kind": "always", "weekdays": [], "daysOfMonth": [], "nth": null, "weekday": null },
+      "caps": {
+        "litresPerFill": null,
+        "litresPerYear": null
+      },
+      "schedule": {
+        "kind": "always",
+        "weekdays": [],
+        "daysOfMonth": [],
+        "nth": null,
+        "weekday": null
+      },
       "validFrom": null,
       "validUntil": null,
       "confidence": "high",
@@ -272,22 +477,45 @@
       "schemaVersion": 1,
       "programId": "repsol-motor",
       "programTitle": "Plano Motor, Luz e Calor",
-      "description": "18 c/L off at Repsol stations with the partner card when Repsol supplies both electricity and gas (advertised as up to 20 c/L), plus 3% of the electricity bill in My Repsol balance.",
+      "description": {
+        "en": "18 c/L off at Repsol stations with the partner card when Repsol supplies both electricity and gas (advertised as up to 20 c/L), plus 3% of the electricity bill in My Repsol balance.",
+        "pt": "18 cênt./L de desconto nos postos Repsol com o cartão de parceiro quando a Repsol fornece eletricidade e gás (anunciado até 20 cênt./L), mais 3% da fatura de eletricidade em saldo My Repsol."
+      },
       "tierId": "motor-luz-calor",
       "tierLabel": "Com eletricidade e gás",
       "tierRank": 2,
       "kind": "loyalty_tier",
       "supplier": "REPSOL",
       "partners": [],
-      "stationMatch": { "brands": ["REPSOL"], "namePrefixes": ["Repsol"] },
-      "requires": ["repsol_partner_card", "repsol_electricity", "repsol_gas"],
+      "stationMatch": {
+        "brands": [
+          "REPSOL"
+        ],
+        "namePrefixes": [
+          "Repsol"
+        ]
+      },
+      "requires": [
+        "repsol_partner_card",
+        "repsol_electricity",
+        "repsol_gas"
+      ],
       "minServices": 2,
       "channel": "instant",
       "valueType": "cents_per_litre",
       "value": 18,
       "combine": "sum",
-      "caps": { "litresPerFill": null, "litresPerYear": null },
-      "schedule": { "kind": "always", "weekdays": [], "daysOfMonth": [], "nth": null, "weekday": null },
+      "caps": {
+        "litresPerFill": null,
+        "litresPerYear": null
+      },
+      "schedule": {
+        "kind": "always",
+        "weekdays": [],
+        "daysOfMonth": [],
+        "nth": null,
+        "weekday": null
+      },
       "validFrom": null,
       "validUntil": null,
       "confidence": "high",
@@ -305,22 +533,46 @@
       "schemaVersion": 1,
       "programId": "bp-pingo-doce",
       "programTitle": "Poupa Mais (BP × Pingo Doce)",
-      "description": "€2 of BP fuel credit for every €40 spent at Pingo Doce with the Poupa Mais card, redeemable on a later fill, capped at 25% of the fill value and €20 per day.",
+      "description": {
+        "en": "€2 of BP fuel credit for every €40 spent at Pingo Doce with the Poupa Mais card, redeemable on a later fill, capped at 25% of the fill value and €20 per day.",
+        "pt": "2 € em combustível BP por cada 40 € gastos no Pingo Doce com o cartão Poupa Mais, para usar num abastecimento posterior, com o limite de 25% do valor do abastecimento e 20 € por dia."
+      },
       "tierId": null,
       "tierLabel": null,
       "tierRank": 0,
       "kind": "card_partner",
       "supplier": "BP",
-      "partners": ["PINGO DOCE"],
-      "stationMatch": { "brands": ["BP"], "namePrefixes": ["BP"] },
-      "requires": ["poupa_mais_card", "spend:pingodoce_40"],
+      "partners": [
+        "PINGO DOCE"
+      ],
+      "stationMatch": {
+        "brands": [
+          "BP"
+        ],
+        "namePrefixes": [
+          "BP"
+        ]
+      },
+      "requires": [
+        "poupa_mais_card",
+        "spend:pingodoce_40"
+      ],
       "minServices": 0,
       "channel": "coupon",
       "valueType": "eur_per_fill",
       "value": 2,
       "combine": "sum",
-      "caps": { "litresPerFill": null, "litresPerYear": null },
-      "schedule": { "kind": "always", "weekdays": [], "daysOfMonth": [], "nth": null, "weekday": null },
+      "caps": {
+        "litresPerFill": null,
+        "litresPerYear": null
+      },
+      "schedule": {
+        "kind": "always",
+        "weekdays": [],
+        "daysOfMonth": [],
+        "nth": null,
+        "weekday": null
+      },
       "validFrom": null,
       "validUntil": null,
       "confidence": "high",
@@ -338,22 +590,41 @@
       "schemaVersion": 1,
       "programId": "bp-voltar-e-poupar",
       "programTitle": "Voltar é poupar (edição 18 mai – 30 jun 2026)",
-      "description": "Historical BP voucher campaign: €3 on a 25 L bp Ultimate fill or €1 on a Regular fill, used on the following fill.",
+      "description": {
+        "en": "Historical BP voucher campaign: €3 on a 25 L bp Ultimate fill or €1 on a Regular fill, used on the following fill.",
+        "pt": "Campanha histórica de vales BP: 3 € num abastecimento de 25 L de bp Ultimate ou 1 € num abastecimento de combustível Regular, para usar no abastecimento seguinte."
+      },
       "tierId": null,
       "tierLabel": null,
       "tierRank": 0,
       "kind": "campaign",
       "supplier": "BP",
       "partners": [],
-      "stationMatch": { "brands": ["BP"], "namePrefixes": ["BP"] },
+      "stationMatch": {
+        "brands": [
+          "BP"
+        ],
+        "namePrefixes": [
+          "BP"
+        ]
+      },
       "requires": [],
       "minServices": 0,
       "channel": "coupon",
       "valueType": null,
       "value": null,
       "combine": "sum",
-      "caps": { "litresPerFill": null, "litresPerYear": null },
-      "schedule": { "kind": "always", "weekdays": [], "daysOfMonth": [], "nth": null, "weekday": null },
+      "caps": {
+        "litresPerFill": null,
+        "litresPerYear": null
+      },
+      "schedule": {
+        "kind": "always",
+        "weekdays": [],
+        "daysOfMonth": [],
+        "nth": null,
+        "weekday": null
+      },
       "validFrom": "2026-05-18",
       "validUntil": "2026-06-30",
       "confidence": "medium",
@@ -371,22 +642,45 @@
       "schemaVersion": 1,
       "programId": "intermarche-first-wednesday",
       "programTitle": "Primeira quarta-feira (Cartão Poupança)",
-      "description": "€10 in Cartão Poupança when fuelling at least €50 at participating Intermarché stations on the first Wednesday of each month; the credit must then be spent in Intermarché stores from the following Thursday to Sunday.",
+      "description": {
+        "en": "€10 in Cartão Poupança when fuelling at least €50 at participating Intermarché stations on the first Wednesday of each month; the credit must then be spent in Intermarché stores from the following Thursday to Sunday.",
+        "pt": "10 € em Cartão Poupança ao abastecer pelo menos 50 € nos postos Intermarché aderentes na primeira quarta-feira de cada mês; o saldo tem de ser gasto nas lojas Intermarché da quinta-feira ao domingo seguintes."
+      },
       "tierId": null,
       "tierLabel": null,
       "tierRank": 0,
       "kind": "campaign",
       "supplier": "INTERMARCHÉ",
       "partners": [],
-      "stationMatch": { "brands": ["INTERMARCHÉ"], "namePrefixes": ["Intermarché", "intermarche"] },
-      "requires": ["intermarche_card", "spend:fuel_50"],
+      "stationMatch": {
+        "brands": [
+          "INTERMARCHÉ"
+        ],
+        "namePrefixes": [
+          "Intermarché",
+          "intermarche"
+        ]
+      },
+      "requires": [
+        "intermarche_card",
+        "spend:fuel_50"
+      ],
       "minServices": 0,
       "channel": "cashback",
       "valueType": "eur_per_fill",
       "value": 10,
       "combine": "sum",
-      "caps": { "litresPerFill": null, "litresPerYear": null },
-      "schedule": { "kind": "nth_weekday_of_month", "weekdays": [], "daysOfMonth": [], "nth": 1, "weekday": 3 },
+      "caps": {
+        "litresPerFill": null,
+        "litresPerYear": null
+      },
+      "schedule": {
+        "kind": "nth_weekday_of_month",
+        "weekdays": [],
+        "daysOfMonth": [],
+        "nth": 1,
+        "weekday": 3
+      },
       "validFrom": null,
       "validUntil": null,
       "confidence": "medium",
@@ -404,22 +698,46 @@
       "schemaVersion": 1,
       "programId": "repsol-lidl-plus",
       "programTitle": "Lidl Plus × Repsol",
-      "description": "0,06 €/litro off at Repsol stations when the Lidl Plus virtual card is presented at the till, which becomes 0,10 €/litro in total when the Lidl Plus account is also linked to a My Repsol card.",
+      "description": {
+        "en": "0,06 €/litro off at Repsol stations when the Lidl Plus virtual card is presented at the till, which becomes 0,10 €/litro in total when the Lidl Plus account is also linked to a My Repsol card.",
+        "pt": "0,06 €/litro de desconto nos postos Repsol ao apresentar o cartão virtual Lidl Plus na caixa, passando a 0,10 €/litro quando a conta Lidl Plus está também associada a um cartão My Repsol."
+      },
       "tierId": "linked",
       "tierLabel": "Lidl Plus + My Repsol",
       "tierRank": 2,
       "kind": "card_partner",
       "supplier": "REPSOL",
-      "partners": ["LIDL"],
-      "stationMatch": { "brands": ["REPSOL"], "namePrefixes": ["Repsol"] },
-      "requires": ["lidl_plus", "my_repsol"],
+      "partners": [
+        "LIDL"
+      ],
+      "stationMatch": {
+        "brands": [
+          "REPSOL"
+        ],
+        "namePrefixes": [
+          "Repsol"
+        ]
+      },
+      "requires": [
+        "lidl_plus",
+        "my_repsol"
+      ],
       "minServices": 0,
       "channel": "instant",
       "valueType": "cents_per_litre",
       "value": 6,
       "combine": "sum",
-      "caps": { "litresPerFill": null, "litresPerYear": null },
-      "schedule": { "kind": "always", "weekdays": [], "daysOfMonth": [], "nth": null, "weekday": null },
+      "caps": {
+        "litresPerFill": null,
+        "litresPerYear": null
+      },
+      "schedule": {
+        "kind": "always",
+        "weekdays": [],
+        "daysOfMonth": [],
+        "nth": null,
+        "weekday": null
+      },
       "validFrom": "2026-01-01",
       "validUntil": "2026-12-31",
       "confidence": "high",
@@ -437,22 +755,46 @@
       "schemaVersion": 1,
       "programId": "repsol-lidl-plus",
       "programTitle": "Lidl Plus × Repsol",
-      "description": "Additional 0,04 €/litro credited to My Repsol balance when the Lidl Plus account is linked to a My Repsol card, completing the 0,10 €/litro total.",
+      "description": {
+        "en": "Additional 0,04 €/litro credited to My Repsol balance when the Lidl Plus account is linked to a My Repsol card, completing the 0,10 €/litro total.",
+        "pt": "0,04 €/litro adicionais creditados em saldo My Repsol quando a conta Lidl Plus está associada a um cartão My Repsol, completando os 0,10 €/litro."
+      },
       "tierId": "linked",
       "tierLabel": "Lidl Plus + My Repsol",
       "tierRank": 2,
       "kind": "card_partner",
       "supplier": "REPSOL",
-      "partners": ["LIDL"],
-      "stationMatch": { "brands": ["REPSOL"], "namePrefixes": ["Repsol"] },
-      "requires": ["lidl_plus", "my_repsol"],
+      "partners": [
+        "LIDL"
+      ],
+      "stationMatch": {
+        "brands": [
+          "REPSOL"
+        ],
+        "namePrefixes": [
+          "Repsol"
+        ]
+      },
+      "requires": [
+        "lidl_plus",
+        "my_repsol"
+      ],
       "minServices": 0,
       "channel": "coupon",
       "valueType": "cents_per_litre",
       "value": 4,
       "combine": "sum",
-      "caps": { "litresPerFill": null, "litresPerYear": null },
-      "schedule": { "kind": "always", "weekdays": [], "daysOfMonth": [], "nth": null, "weekday": null },
+      "caps": {
+        "litresPerFill": null,
+        "litresPerYear": null
+      },
+      "schedule": {
+        "kind": "always",
+        "weekdays": [],
+        "daysOfMonth": [],
+        "nth": null,
+        "weekday": null
+      },
       "validFrom": "2026-01-01",
       "validUntil": "2026-12-31",
       "confidence": "high",
@@ -470,22 +812,45 @@
       "schemaVersion": 1,
       "programId": "repsol-lidl-plus",
       "programTitle": "Lidl Plus × Repsol",
-      "description": "0,06 €/litro off at Repsol stations when only the Lidl Plus app is presented, without linking a My Repsol card.",
+      "description": {
+        "en": "0,06 €/litro off at Repsol stations when only the Lidl Plus app is presented, without linking a My Repsol card.",
+        "pt": "0,06 €/litro de desconto nos postos Repsol ao apresentar apenas a app Lidl Plus, sem associar um cartão My Repsol."
+      },
       "tierId": "app-only",
       "tierLabel": "Lidl Plus apenas",
       "tierRank": 1,
       "kind": "card_partner",
       "supplier": "REPSOL",
-      "partners": ["LIDL"],
-      "stationMatch": { "brands": ["REPSOL"], "namePrefixes": ["Repsol"] },
-      "requires": ["lidl_plus"],
+      "partners": [
+        "LIDL"
+      ],
+      "stationMatch": {
+        "brands": [
+          "REPSOL"
+        ],
+        "namePrefixes": [
+          "Repsol"
+        ]
+      },
+      "requires": [
+        "lidl_plus"
+      ],
       "minServices": 0,
       "channel": "instant",
       "valueType": "cents_per_litre",
       "value": 6,
       "combine": "sum",
-      "caps": { "litresPerFill": null, "litresPerYear": null },
-      "schedule": { "kind": "always", "weekdays": [], "daysOfMonth": [], "nth": null, "weekday": null },
+      "caps": {
+        "litresPerFill": null,
+        "litresPerYear": null
+      },
+      "schedule": {
+        "kind": "always",
+        "weekdays": [],
+        "daysOfMonth": [],
+        "nth": null,
+        "weekday": null
+      },
       "validFrom": "2026-01-01",
       "validUntil": "2026-12-31",
       "confidence": "high",

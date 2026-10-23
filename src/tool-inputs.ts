@@ -71,6 +71,10 @@ export const findStationsInput = z.object({
     .max(120)
     .optional()
     .describe("Fill size used for per-fill caps and savings, in litres. Default 50."),
+  lang: z
+    .enum(["en", "pt"])
+    .optional()
+    .describe('Language for human-readable discount descriptions: "en" (default) or "pt".'),
 });
 
 export const stationDetailsInput = z.object({
@@ -88,6 +92,7 @@ export const stationDetailsInput = z.object({
     .describe('Services held for tiered programmes, e.g. ["galp_energy", "nos_package"].'),
   discount_mode: z.enum(["best_case", "guaranteed"]).optional(),
   fill_litres: z.number().min(5).max(120).optional(),
+  lang: z.enum(["en", "pt"]).optional(),
 });
 
 export const marketOverviewInput = z.object({
@@ -125,6 +130,10 @@ export const discountProgramsInput = z.object({
     .boolean()
     .optional()
     .describe("Only programmes with a numeric value (some deals are catalogued before being quantified)."),
+  lang: z
+    .enum(["en", "pt"])
+    .optional()
+    .describe('Language for the programme descriptions: "en" (default) or "pt".'),
 });
 
 export const listFuelTypesInput = z.object({

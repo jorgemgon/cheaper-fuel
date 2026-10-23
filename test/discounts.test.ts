@@ -15,7 +15,10 @@ function makeDiscount(overrides: Partial<Discount> & { id: string }): Discount {
     schemaVersion: 1,
     programId: "test-program",
     programTitle: "Test programme",
-    description: "Test discount used by the unit tests.",
+    description: {
+      en: "Test discount used by the unit tests.",
+      pt: "Desconto de teste usado pelos testes unitários.",
+    },
     tierId: null,
     tierLabel: null,
     tierRank: 0,
@@ -397,6 +400,31 @@ describe("schedule", () => {
 
     expect(outcome.applied?.appliedCents).toBe(10);
     expect(outcome.scheduled).toHaveLength(0);
+  });
+  it("lists active programmes before scheduled and expired ones", () => {
+    const groups = groupProgrammes(
+      [
+        makeDiscount({
+          id: "expired",
+          programId: "z-expired",
+          supplier: "ZETA",
+          validFrom: "2026-01-01",
+          validUntil: "2026-02-01",
+        }),
+        makeDiscount({
+          id: "scheduled",
+          programId: "a-scheduled",
+          supplier: "ALPHA",
+          validFrom: "2026-12-01",
+        }),
+        makeDiscount({ id: "active", programId: "m-active", supplier: "MID" }),
+      ],
+      TODAY,
+    );
+
+    expect(groups.map((group) => group.status)).toEqual(["active", "scheduled", "expired"]);
+    // Supplier/title ordering only breaks ties inside the same status.
+    expect(groups[0].programId).toBe("m-active");
   });
 });
 

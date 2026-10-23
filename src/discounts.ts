@@ -18,6 +18,9 @@ import type { Env } from "./env";
 export const DISCOUNT_CACHE_TTL_MS = 60_000;
 export const SOURCE_STALE_DAYS = 45;
 
+/** Active promotions are listed before scheduled and ended ones. */
+const STATUS_ORDER: Record<DiscountStatus, number> = { active: 0, scheduled: 1, expired: 2 };
+
 export interface DiscountRegistry {
   ok: true;
   discounts: Discount[];
@@ -108,7 +111,7 @@ export function sanitizeProfile(input: DiscountProfileInput = {}): DiscountProfi
 export interface DiscountResolution {
   programId: string;
   programTitle: string;
-  description: string;
+  description: { en: string; pt: string };
   tierId: string | null;
   tierLabel: string | null;
   guaranteedCents: number;
@@ -128,7 +131,7 @@ export interface DiscountResolution {
 export interface ScheduledOffer {
   programId: string;
   programTitle: string;
-  description: string;
+  description: { en: string; pt: string };
   scheduleLabel: string;
   nextDate: string | null;
   confidence: DiscountConfidence;
@@ -520,6 +523,10 @@ export function groupProgrammes(discounts: readonly Discount[], today: string): 
       return group;
     })
     .sort(
-      (a, b) => a.supplier.localeCompare(b.supplier) || a.programTitle.localeCompare(b.programTitle),
+      (a, b) =>
+        // Active promotions always come first, then scheduled, then ended ones.
+        STATUS_ORDER[a.status] - STATUS_ORDER[b.status] ||
+        a.supplier.localeCompare(b.supplier) ||
+        a.programTitle.localeCompare(b.programTitle),
     );
 }

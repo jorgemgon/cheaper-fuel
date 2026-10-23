@@ -71,10 +71,11 @@ MCP tools.
 | `GET /api/fuels` | fuel types |
 | `GET /api/locations` | concelho/locality/postcode lookup |
 
-List parameters accept either comma-separated values (`?fuels=diesel,95`) or repeated keys. Errors are
-`{ "error": { "code", "message", "hint?" } }` with 400 for validation, 404 for an unknown station,
-422 for coordinates outside mainland Portugal, 502 for upstream failures and 503 when the discount
-registry is unavailable.
+List parameters accept either comma-separated values (`?fuels=diesel,95`) or repeated keys. Endpoints
+that return discount descriptions accept `lang=en` (default) or `lang=pt`; the dashboard asks for `pt`.
+Errors are `{ "error": { "code", "message", "hint?" } }` with 400 for validation, 404 for an unknown
+station, 422 for coordinates outside mainland Portugal, 502 for upstream failures and 503 when the
+discount registry is unavailable.
 
 
 ## Why not scrape the website?
@@ -203,8 +204,13 @@ coupon, tiered by how many services you hold) is several rows sharing `programId
 **There is no `status` column.** Activeness is always derived from `validFrom`/`validUntil` against today
 in Europe/Lisbon — `scheduled`, `active` or `expired`. Editing one date is enough; nothing can drift.
 
-Every discount also carries a required **`description`** — one readable sentence explaining the mechanic,
-so a client never has to reconstruct it from numbers and note fields.
+Every discount also carries a required **`description`** in **both English and Portuguese**
+(`description: { en, pt }`). The API and the MCP tools resolve it to a single string using `lang`
+(`en` by default, `pt` for the dashboard), so a client never has to reconstruct the mechanic from
+numbers and note fields.
+
+Promotions are always listed **active first**, then `scheduled`, then `expired`; supplier and title only
+break ties within the same status.
 
 ### Day-restricted offers
 

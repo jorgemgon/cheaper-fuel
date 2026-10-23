@@ -100,6 +100,16 @@ describe("handleApi", () => {
     expect(response.status).toBe(400);
   });
 
+  it("rejects an unknown language", async () => {
+    const response = await handleApi(get("/api/discounts?lang=xx"), env);
+    expect(response.status).toBe(400);
+  });
+
+  it("passes the language through the station query", () => {
+    const query = stationsQuery(new URLSearchParams("location=Leiria&lang=pt"));
+    expect(query.lang).toBe("pt");
+  });
+
   it("rejects an out-of-range history window", async () => {
     const response = await handleApi(get("/api/history?fuels=diesel&days=5000"), env);
     expect(response.status).toBe(400);

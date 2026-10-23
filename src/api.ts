@@ -97,6 +97,7 @@ function discountParams(search: URLSearchParams) {
     services: listParam(search, "services"),
     discount_mode: textParam(search, "discount_mode"),
     fill_litres: numberParam(search, "fill_litres"),
+    lang: textParam(search, "lang"),
   };
 }
 
@@ -145,6 +146,7 @@ function discountQuery(search: URLSearchParams) {
     kind: textParam(search, "kind"),
     status: textParam(search, "status"),
     quantified_only: booleanParam(search, "quantified_only"),
+    lang: textParam(search, "lang"),
   };
 }
 
