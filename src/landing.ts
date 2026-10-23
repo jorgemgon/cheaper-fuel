@@ -10,7 +10,13 @@ const TOOLS: Array<{ name: string; summary: string }> = [
   },
   { name: "get_station_details", summary: "One station: every fuel price, opening hours, services, payment methods." },
   { name: "get_market_overview", summary: "Min / average / median / max and the price spread, nationally or per concelho." },
-  { name: "get_price_history", summary: "Daily national average prices with the change over the period." },
+  { name: "get_price_history", summary: "Daily national average prices and the observed discount, with the change over the period." },
+  {
+    name: "list_discount_programs",
+    summary:
+      "The discount catalogue stored in D1: supplier, retail partners, mechanics, caps, validity and provenance. " +
+      "Activeness is derived from the validity dates, never stored.",
+  },
   { name: "list_fuel_types", summary: "Fuel catalogue: ids, names and units." },
   { name: "list_locations", summary: "Resolve concelhos, localities and postal codes." },
 ];
@@ -91,6 +97,14 @@ npx @modelcontextprotocol/inspector</code></pre>
     <strong>Data freshness.</strong> Prices are cached for up to 24 hours. Every response includes
     <code>data_fetched_at</code> (when this server last read DGEG) and <code>last_updated</code>
     (when the operator published each price). Treat prices as published figures, not real-time quotes.
+  </div>
+
+  <div class="notice">
+    <strong>Discounts are advisory.</strong> <code>find_stations</code> accepts <code>cards</code> and
+    <code>services</code> and reports an <code>effective_price</code> after the programmes the caller
+    qualifies for. Only high-confidence programmes are applied; anything still being verified is returned
+    separately as <code>possible_discounts</code>, and deals published without a number are catalogued
+    rather than guessed. Terms belong to the operators — confirm at the pump.
   </div>
 
   <div class="notice">

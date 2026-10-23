@@ -7,6 +7,7 @@ import {
   formatPrice,
   fuelAlias,
   isWithinHours,
+  lisbonToday,
   MAINLAND_NOTE,
   mapsUrl,
   matchByName,
@@ -39,6 +40,17 @@ import {
   sortByPrice,
   type RowWithDistance,
 } from "./geo";
+import {
+  groupProgrammes,
+  loadDiscounts,
+  resolveForStation,
+  sanitizeProfile,
+  type DiscountOutcome,
+  type DiscountProfile,
+  type DiscountProfileInput,
+  type DiscountRegistry,
+  type DiscountResolution,
+} from "./discounts";
 
 const DEFAULT_FUELS = ["Gasóleo simples", "Gasolina simples 95"];
 const OVERVIEW_FUELS = ["Gasóleo simples", "Gasolina simples 95", "Gasolina 98"];
@@ -51,6 +63,8 @@ const SERVER_INSTRUCTIONS = [
   "Routing — pick the tool that matches the intent and call it once:",
   "- cheapest fuel near a place, a postal code or \"near me\" → find_stations (pass `location`)",
   "- cheapest fuel in a concelho/district, or from a specific brand → find_stations (`municipality`/`district`/`brand`)",
+  "- discounts, loyalty cards, or \"cheapest with my Continente card\" → find_stations (pass `cards`/`services`)",
+  "- which discount programmes exist → list_discount_programs",
   "- national or regional averages, min/max/median → get_market_overview",
   "- how prices changed over time → get_price_history (national daily averages only)",
   "- opening hours, services or payment methods of one station → get_station_details",
@@ -66,6 +80,10 @@ const SERVER_INSTRUCTIONS = [
   "  and each station's `last_updated` (when the operator published it). Say the prices are",
   "  \"as published by DGEG\", never \"real-time\".",
   "- Coverage is mainland Portugal only: the Azores and Madeira are not included.",
+  "- Discounts are conditional and advisory. Ask once which cards/services the user holds and pass them",
+  "  as `cards`/`services` to find_stations. Only high-confidence programmes affect effective_price;",
+  "  anything else is returned as possible_discounts to verify. Never add catalogue discounts to the",
+  "  DGEG observed average — they are different measures.",
   "- Report prices using `price_display` (e.g. \"1,929 €/litro\").",
 ].join("\n");
 
@@ -263,7 +281,11 @@ function isOutsideMainland(lat: number, lon: number): boolean {
   );
 }
 
-function stationPayload(row: SnapshotRow & { distanceKm?: number }, unit: string | null) {
+function stationPayload(
+  row: SnapshotRow & { distanceKm?: number },
+  unit: string | null,
+  extras: Record<string, unknown> = {},
+) {
   return {
     id: row.id,
     name: row.name,
@@ -283,6 +305,91 @@ function stationPayload(row: SnapshotRow & { distanceKm?: number }, unit: string
     station_type: row.stationType,
     last_updated: row.updated,
     maps_url: mapsUrl(row.lat, row.lon),
+    ...extras,
+  };
+}
+
+interface DiscountContext {
+  discounts: DiscountRegistry["discounts"];
+  registryUpdatedAt: string | null;
+  profile: DiscountProfile;
+  today: string;
+  unavailable: string | null;
+}
+
+async function loadDiscountContext(env: Env, input: DiscountProfileInput): Promise<DiscountContext> {
+  const today = lisbonToday();
+  const profile = sanitizeProfile(input);
+  const loaded = await loadDiscounts(env);
+
+  if (!loaded.ok) {
+    return { discounts: [], registryUpdatedAt: null, profile, today, unavailable: loaded.reason };
+  }
+  return {
+    discounts: loaded.discounts,
+    registryUpdatedAt: loaded.updatedAt,
+    profile,
+    today,
+    unavailable: null,
+  };
+}
+
+function resolutionPayload(resolution: DiscountResolution, unit: string | null) {
+  return {
+    program_id: resolution.programId,
+    program_title: resolution.programTitle,
+    tier: resolution.tierId,
+    label: resolution.tierLabel,
+    guaranteed_cents: resolution.guaranteedCents,
+    max_cents: resolution.maxCents,
+    applied_cents: resolution.appliedCents,
+    effective_price_eur: resolution.effectivePriceEur,
+    effective_price_display: formatPrice(resolution.effectivePriceEur, unit),
+    saves_eur_per_fill: resolution.savesEurPerFill,
+    conditions: resolution.conditions,
+    confidence: resolution.confidence,
+    stale: resolution.stale,
+  };
+}
+
+function discountExtras(outcome: DiscountOutcome, unit: string | null): Record<string, unknown> {
+  const extras: Record<string, unknown> = {};
+  if (outcome.applied) extras.discount = resolutionPayload(outcome.applied, unit);
+  if (outcome.possible.length > 0) {
+    extras.possible_discounts = outcome.possible.slice(0, 2).map((entry) => resolutionPayload(entry, unit));
+  }
+  if (outcome.catalogued.length > 0) {
+    extras.catalogued_discounts = outcome.catalogued.slice(0, 2).map((entry) => resolutionPayload(entry, unit));
+  }
+  if (outcome.locked.length > 0) {
+    extras.locked_discounts = outcome.locked.slice(0, 2);
+  }
+  return extras;
+}
+
+function stationEntry(
+  context: DiscountContext,
+  row: SnapshotRow & { distanceKm?: number },
+  unit: string | null,
+) {
+  const outcome = resolveForStation(
+    context.discounts,
+    { brand: row.brand, name: row.name, price: row.price },
+    unit,
+    context.profile,
+    context.today,
+  );
+
+  return {
+    payload: stationPayload(row, unit, discountExtras(outcome, unit)),
+    effectivePrice: outcome.applied?.effectivePriceEur ?? row.price ?? Number.POSITIVE_INFINITY,
+  };
+}
+
+function discountRegistryFields(context: DiscountContext): Record<string, unknown> {
+  return {
+    registry_updated_at: context.registryUpdatedAt,
+    ...(context.unavailable ? { discounts_unavailable: context.unavailable } : {}),
   };
 }
 
@@ -307,6 +414,57 @@ function resolveLocationOrThrow(places: PlaceIndex, input: string): ResolvedLoca
 function countForFuel(rows: readonly RowWithDistance[], fuelName: string): number {
   const key = normalizeText(fuelName);
   return rows.filter((row) => normalizeText(row.fuel) === key).length;
+}
+
+interface ObservedDiscount {
+  date: string;
+  avg_discount_eur: number;
+  avg_discount_percent: number | null;
+  stations: number;
+}
+
+/**
+ * DGEG's daily series carries both the discounted and the undiscounted average;
+ * the gap is the observed discount. It is a national weighted average, so it is
+ * reported separately and never mixed with catalogue discounts.
+ */
+async function recentObservedDiscounts(
+  ctx: DgegContext,
+  fuels: readonly FuelType[],
+): Promise<Map<string, ObservedDiscount | null>> {
+  const result = new Map<string, ObservedDiscount | null>();
+  try {
+    const { from, to } = buildDateRange({ days: 7 });
+    const rows = await getDailyHistory(ctx, { fuelIds: fuels.map((fuel) => fuel.id), from, to });
+
+    const latest = new Map<string, HistoryRow>();
+    for (const row of rows) {
+      if (row.avg === null || row.avgNoDiscount === null) continue;
+      const key = normalizeText(row.fuel);
+      const current = latest.get(key);
+      if (!current || row.date > current.date) latest.set(key, row);
+    }
+
+    for (const fuel of fuels) {
+      const key = normalizeText(fuel.name);
+      const row = latest.get(key);
+      if (!row || row.avg === null || row.avgNoDiscount === null) {
+        result.set(key, null);
+        continue;
+      }
+      const discount = roundTo(row.avgNoDiscount - row.avg, 4);
+      result.set(key, {
+        date: row.date,
+        avg_discount_eur: discount,
+        avg_discount_percent:
+          row.avgNoDiscount > 0 ? roundTo((discount / row.avgNoDiscount) * 100, 2) : null,
+        stations: row.stationCount,
+      });
+    }
+  } catch {
+    for (const fuel of fuels) result.set(normalizeText(fuel.name), null);
+  }
+  return result;
 }
 
 export function createServer(env: Env): McpServer {
@@ -360,9 +518,37 @@ export function createServer(env: Env): McpServer {
           .optional()
           .describe("Only prices updated within this many hours, e.g. 24."),
         sort: z
-          .enum(["distance", "price"])
+          .enum(["distance", "price", "effective_price"])
           .optional()
-          .describe("Rank by distance (proximity searches) or price. Region rankings are always by price."),
+          .describe(
+            "Rank by distance (proximity searches), price, or effective price after discounts. " +
+              "Region rankings default to price.",
+          ),
+        cards: z
+          .array(z.string())
+          .max(10)
+          .optional()
+          .describe(
+            'Loyalty cards or apps the user holds, e.g. ["continente_card"], ["mundo_galp_app"]. ' +
+              "Only programmes whose requirements are all declared can be applied.",
+          ),
+        services: z
+          .array(z.string())
+          .max(10)
+          .optional()
+          .describe('Services held for tiered programmes, e.g. ["galp_energy", "nos_package"].'),
+        discount_mode: z
+          .enum(["best_case", "guaranteed"])
+          .optional()
+          .describe(
+            "best_case includes spend-triggered coupons; guaranteed counts only permanent app/instant benefits.",
+          ),
+        fill_litres: z
+          .number()
+          .min(5)
+          .max(120)
+          .optional()
+          .describe("Fill size used for per-fill caps and savings, in litres. Default 50."),
       }),
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
@@ -457,6 +643,14 @@ export function createServer(env: Env): McpServer {
           const radiusKm = args.radius_km ?? 15;
           const maxRadiusKm = Math.max(radiusKm, args.max_radius_km ?? 40);
           const sort = args.sort ?? "distance";
+          const wantsEffectiveSort = sort === "effective_price";
+
+          const discountContext = await loadDiscountContext(env, {
+            cards: args.cards,
+            services: args.services,
+            fillLitres: args.fill_litres,
+            mode: args.discount_mode,
+          });
 
           const proximity = searchProximity({
             rows: filtered,
@@ -464,19 +658,24 @@ export function createServer(env: Env): McpServer {
             point,
             radiusKm,
             maxRadiusKm,
-            limitPerFuel: limit,
-            sort,
+            // Sorting by effective price needs a wider pool to sort through.
+            limitPerFuel: wantsEffectiveSort ? Math.min(25, limit * 3) : limit,
+            sort: wantsEffectiveSort ? "distance" : sort,
           });
 
           const fuelResults = fuels.map((fuel) => {
             const unit = fuel.unit;
             const matched = countForFuel(proximity.withinRadius, fuel.name);
-            return {
-              fuel: fuel.name,
-              unit,
-              stations_found: matched,
-              stations: (proximity.byFuel.get(fuel.name) ?? []).map((row) => stationPayload(row, unit)),
-            };
+            const entries = (proximity.byFuel.get(fuel.name) ?? []).map((row) =>
+              stationEntry(discountContext, row, unit),
+            );
+            const stations = (
+              wantsEffectiveSort
+                ? [...entries].sort((a, b) => a.effectivePrice - b.effectivePrice).slice(0, limit)
+                : entries
+            ).map((entry) => entry.payload);
+
+            return { fuel: fuel.name, unit, stations_found: matched, stations };
           });
 
           const covered = municipalitiesCovered(proximity.withinRadius);
@@ -485,6 +684,7 @@ export function createServer(env: Env): McpServer {
           const payload: Record<string, unknown> = {
             source: SOURCE,
             data_fetched_at: snapshot.fetchedAt,
+            ...discountRegistryFields(discountContext),
             query: {
               mode: "proximity",
               location: point.label,
@@ -502,6 +702,12 @@ export function createServer(env: Env): McpServer {
               sort,
               brand: brandName,
               station_type: args.station_type ?? null,
+              discounts: {
+                cards: discountContext.profile.cards,
+                services: discountContext.profile.services,
+                mode: discountContext.profile.mode,
+                fill_litres: discountContext.profile.fillLitres,
+              },
             },
             result: {
               mode: "proximity",
@@ -535,24 +741,34 @@ export function createServer(env: Env): McpServer {
         });
 
         const sort = args.sort ?? "price";
+        const wantsEffectiveSort = sort === "effective_price";
+
+        const discountContext = await loadDiscountContext(env, {
+          cards: args.cards,
+          services: args.services,
+          fillLitres: args.fill_litres,
+          mode: args.discount_mode,
+        });
+
         const fuelResults = fuels.map((fuel) => {
           const unit = fuel.unit;
           const rowsForFuel = regionRows.filter((row) => normalizeText(row.fuel) === normalizeText(fuel.name));
-          // Without a reference point, distance ranking is meaningless: region
-          // rankings are always by price.
-          const cheapest = sortByPrice(rowsForFuel, limit);
+          // Without a reference point, distance ranking is meaningless.
+          const pool = sortByPrice(rowsForFuel, wantsEffectiveSort ? Math.min(25, limit * 3) : limit);
+          const entries = pool.map((row) => stationEntry(discountContext, row, unit));
+          const stations = (
+            wantsEffectiveSort
+              ? [...entries].sort((a, b) => a.effectivePrice - b.effectivePrice).slice(0, limit)
+              : entries
+          ).map((entry) => entry.payload);
 
-          return {
-            fuel: fuel.name,
-            unit,
-            stations_found: rowsForFuel.length,
-            stations: cheapest.map((row) => stationPayload(row, unit)),
-          };
+          return { fuel: fuel.name, unit, stations_found: rowsForFuel.length, stations };
         });
 
         return {
           source: SOURCE,
           data_fetched_at: snapshot.fetchedAt,
+          ...discountRegistryFields(discountContext),
           query: {
             mode: "region",
             district: region.district?.name ?? null,
@@ -562,6 +778,12 @@ export function createServer(env: Env): McpServer {
             sort,
             brand: brandName,
             station_type: args.station_type ?? null,
+            discounts: {
+              cards: discountContext.profile.cards,
+              services: discountContext.profile.services,
+              mode: discountContext.profile.mode,
+              fill_litres: discountContext.profile.fillLitres,
+            },
           },
           result: {
             mode: "region",
@@ -584,6 +806,18 @@ export function createServer(env: Env): McpServer {
       inputSchema: z.object({
         station_id: z.number().int().positive().optional().describe("DGEG station id, as returned by find_stations."),
         station_name: z.string().min(2).optional().describe("Station name or fragment, e.g. \"Repsol Leiria\"."),
+        cards: z
+          .array(z.string())
+          .max(10)
+          .optional()
+          .describe('Loyalty cards or apps the user holds, e.g. ["continente_card", "mundo_galp_app"].'),
+        services: z
+          .array(z.string())
+          .max(10)
+          .optional()
+          .describe('Services held for tiered programmes, e.g. ["galp_energy", "nos_package"].'),
+        discount_mode: z.enum(["best_case", "guaranteed"]).optional(),
+        fill_litres: z.number().min(5).max(120).optional(),
       }),
       annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
     },
@@ -640,17 +874,43 @@ export function createServer(env: Env): McpServer {
           });
         }
 
+        const discountContext = await loadDiscountContext(env, {
+          cards: args.cards,
+          services: args.services,
+          fillLitres: args.fill_litres,
+          mode: args.discount_mode,
+        });
+
         return {
           source: SOURCE,
           data_fetched_at: snapshot.fetchedAt,
-          query: { station_id: stationId },
+          ...discountRegistryFields(discountContext),
+          query: {
+            station_id: stationId,
+            discounts: {
+              cards: discountContext.profile.cards,
+              services: discountContext.profile.services,
+              mode: discountContext.profile.mode,
+              fill_litres: discountContext.profile.fillLitres,
+            },
+          },
           result: {
             station: {
               ...detail,
-              fuels: detail.fuels.map((fuel) => ({
-                ...fuel,
-                price_display: formatPrice(fuel.price, fuel.unit),
-              })),
+              fuels: detail.fuels.map((fuel) => {
+                const outcome = resolveForStation(
+                  discountContext.discounts,
+                  { brand: detail.brand, name: detail.name, price: fuel.price },
+                  fuel.unit,
+                  discountContext.profile,
+                  discountContext.today,
+                );
+                return {
+                  ...fuel,
+                  price_display: formatPrice(fuel.price, fuel.unit),
+                  ...discountExtras(outcome, fuel.unit),
+                };
+              }),
               maps_url:
                 detail.address.latitude !== null && detail.address.longitude !== null
                   ? mapsUrl(detail.address.latitude, detail.address.longitude)
@@ -697,6 +957,8 @@ export function createServer(env: Env): McpServer {
           return true;
         });
 
+        const observed = await recentObservedDiscounts(ctx, fuels);
+
         const results = fuels.map((fuel) => {
           const rowsForFuel = scopeRows.filter((row) => normalizeText(row.fuel) === normalizeText(fuel.name));
           const prices = rowsForFuel.map((row) => row.price).filter((price): price is number => price !== null);
@@ -712,6 +974,7 @@ export function createServer(env: Env): McpServer {
             price_median: stats?.median ?? null,
             price_max: stats?.max ?? null,
             price_spread: stats ? roundTo(stats.max - stats.min, 3) : null,
+            observed_discount_national: observed.get(normalizeText(fuel.name)) ?? null,
             cheapest: cheapest.map((row) => stationPayload(row, fuel.unit)),
           };
         });
@@ -730,7 +993,9 @@ export function createServer(env: Env): McpServer {
                 ? [region.municipality?.name, region.district?.name].filter(Boolean).join(", ")
                 : "Portugal (mainland)",
             fuels: results,
-            note: MAINLAND_NOTE,
+            note:
+              `${MAINLAND_NOTE} observed_discount_national is DGEG's national weighted average gap between the ` +
+              `undiscounted and discounted price; it is not regional and must not be added to catalogue discounts.`,
           },
         };
       }),
@@ -742,7 +1007,8 @@ export function createServer(env: Env): McpServer {
       title: "Fuel price history",
       description:
         "Daily national average prices for one or more fuels, with min/max range, number of stations and " +
-        "the change over the period. Use for trends (\"how has diesel changed this month?\"). " +
+        "the change over the period. Also reports the observed discount (the gap between DGEG's undiscounted " +
+        "and discounted averages). Use for trends (\"how has diesel changed this month?\"). " +
         "DGEG publishes this series nationally only — there is no per-concelho or per-station history.",
       inputSchema: z.object({
         fuels: z
@@ -795,6 +1061,32 @@ export function createServer(env: Env): McpServer {
               : null;
           const stats = summarize(averages);
 
+          const pointsPayload = points.map((point) => {
+            const discount =
+              point.avg !== null && point.avgNoDiscount !== null
+                ? roundTo(point.avgNoDiscount - point.avg, 4)
+                : null;
+            return {
+              date: point.date,
+              avg: point.avg,
+              avg_without_discount: point.avgNoDiscount,
+              avg_discount_eur: discount,
+              avg_discount_percent:
+                discount !== null && point.avgNoDiscount !== null && point.avgNoDiscount > 0
+                  ? roundTo((discount / point.avgNoDiscount) * 100, 2)
+                  : null,
+              min: point.min,
+              max: point.max,
+              stations: point.stationCount,
+            };
+          });
+
+          const discountValues = pointsPayload
+            .map((point) => point.avg_discount_eur)
+            .filter((value): value is number => value !== null);
+          const discountStats = summarize(discountValues);
+          const discountedDays = discountValues.filter((value) => value > 0).length;
+
           return {
             fuel: fuel.name,
             unit: fuel.unit,
@@ -808,14 +1100,18 @@ export function createServer(env: Env): McpServer {
             period_min_avg: stats?.min ?? null,
             period_max_avg: stats?.max ?? null,
             period_avg: stats?.avg ?? null,
-            points: points.map((point) => ({
-              date: point.date,
-              avg: point.avg,
-              avg_without_discount: point.avgNoDiscount,
-              min: point.min,
-              max: point.max,
-              stations: point.stationCount,
-            })),
+            discount_summary: discountStats
+              ? {
+                  avg_discount_eur: discountStats.avg,
+                  max_discount_eur: discountStats.max,
+                  days_with_discount: discountedDays,
+                  discount_share_percent:
+                    discountValues.length > 0
+                      ? roundTo((discountedDays / discountValues.length) * 100, 1)
+                      : null,
+                }
+              : null,
+            points: pointsPayload,
           };
         });
 
@@ -827,8 +1123,107 @@ export function createServer(env: Env): McpServer {
             scope: "Portugal (mainland), national daily average — not per station",
             fuels: results,
             note:
-              "DGEG publishes this historical series nationally only. " +
-              "For current per-station prices use find_stations.",
+              "DGEG publishes this historical series nationally only. avg_discount_eur is the observed gap " +
+              "between the undiscounted and discounted national averages (fleet cards and similar); it is not " +
+              "attributable to a supplier or station and must not be added to catalogue discounts. " +
+              "For current per-station prices and discounts use find_stations.",
+          },
+        };
+      }),
+  );
+
+  server.registerTool(
+    "list_discount_programs",
+    {
+      title: "List discount programmes",
+      description:
+        "The standardized discount catalogue stored in D1: supplier, retail partners, mechanics, caps, " +
+        "requirements, validity window and provenance. Activeness is always derived from validFrom/validUntil, " +
+        "never stored. Use this to explain how a deal works; find_stations already applies the programmes the " +
+        "user qualifies for.",
+      inputSchema: z.object({
+        supplier: z.string().optional().describe('Filter by supplier, e.g. "galp".'),
+        partner: z.string().optional().describe('Filter by retail partner, e.g. "continente".'),
+        kind: z.enum(["loyalty_tier", "card_partner", "campaign", "app"]).optional(),
+        status: z
+          .enum(["active", "scheduled", "expired", "all"])
+          .optional()
+          .describe("Derived status filter. Default active."),
+        quantified_only: z
+          .boolean()
+          .optional()
+          .describe("Only programmes with a numeric value (some deals are catalogued before being quantified)."),
+      }),
+      annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
+    },
+    async (args) =>
+      runTool(async () => {
+        const loaded = await loadDiscounts(env);
+        if (!loaded.ok) {
+          throw new ToolError("discounts_unavailable", "The discount registry is not available.", {
+            reason: loaded.reason,
+            hint: "Apply the D1 migrations (npm run db:migrate:remote) to create and seed the discounts table.",
+          });
+        }
+
+        const today = lisbonToday();
+        const statusFilter = args.status ?? "active";
+        const supplierKey = args.supplier ? normalizeText(args.supplier) : null;
+        const partnerKey = args.partner ? normalizeText(args.partner) : null;
+
+        const groups = groupProgrammes(loaded.discounts, today)
+          .filter((group) => (statusFilter === "all" ? true : group.status === statusFilter))
+          .filter((group) => (args.kind ? group.kind === args.kind : true))
+          .filter((group) =>
+            supplierKey ? normalizeText(group.supplier).includes(supplierKey) : true,
+          )
+          .filter((group) =>
+            partnerKey
+              ? group.partners.some((partner) => normalizeText(partner).includes(partnerKey))
+              : true,
+          )
+          .filter((group) => (args.quantified_only ? group.quantified : true));
+
+        return {
+          source: SOURCE,
+          registry_updated_at: loaded.updatedAt,
+          query: {
+            supplier: args.supplier ?? null,
+            partner: args.partner ?? null,
+            kind: args.kind ?? null,
+            status: statusFilter,
+          },
+          result: {
+            status_note:
+              "Status is derived from validFrom/validUntil against today in Europe/Lisbon; it is not stored.",
+            programs: groups.map((group) => ({
+              program_id: group.programId,
+              program_title: group.programTitle,
+              supplier: group.supplier,
+              partners: group.partners,
+              kind: group.kind,
+              confidence: group.confidence,
+              status: group.status,
+              quantified: group.quantified,
+              stale: group.stale,
+              discounts: group.discounts.map((discount) => ({
+                id: discount.id,
+                tier: discount.tierId,
+                tier_label: discount.tierLabel,
+                min_services: discount.minServices,
+                channel: discount.channel,
+                value_type: discount.valueType,
+                value: discount.value,
+                combine: discount.combine,
+                caps: discount.caps,
+                requires: discount.requires,
+                valid_from: discount.validFrom,
+                valid_until: discount.validUntil,
+                status: discount.status,
+                stale: discount.stale,
+                source: discount.source,
+              })),
+            })),
           },
         };
       }),
