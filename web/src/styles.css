@@ -457,6 +457,51 @@ p {
   white-space: nowrap;
 }
 
+/* Spend for the chosen quantity, plus the saving when a discount applies. */
+.fill-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid rgba(108, 196, 255, 0.2);
+  background: rgba(108, 196, 255, 0.07);
+  font-size: 0.88rem;
+}
+
+.fill-total {
+  font-variant-numeric: tabular-nums;
+}
+
+.fill-saving {
+  color: var(--good);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tier ladder for multi-service programmes (COMBINA 1 / 2 / 3+). */
+.tier-ladder {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.tier-step {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.12rem 0.5rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.tier-step.is-on {
+  color: var(--text);
+  border-color: var(--accent);
+  background: rgba(108, 196, 255, 0.1);
+}
+
 .station {
   display: flex;
   flex-direction: column;

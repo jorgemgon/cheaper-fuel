@@ -20,6 +20,7 @@ import { fuelColor } from "../lib/fuel-colors";
 import { formatDate, formatRelativeTime } from "../lib/format";
 import { buildFuelGroups, fuelGroupCount } from "../lib/fuel-groups";
 import { GEO_CACHE_TTL_MS, isFresh } from "../lib/geo";
+import { buildTierLadders } from "../lib/programme-tiers";
 import { nextSortState } from "../lib/sort-order";
 import { readJson, writeJson } from "../lib/storage";
 
@@ -103,6 +104,18 @@ const limitNotice = computed(() =>
     : `Limite de ${profile.value.limit} por combustível — muda em "Resultados" para veres o resto.`,
 );
 
+const quantityLabel = computed(() =>
+  profile.value.quantityUnit === "litres" ? `${profile.value.quantity} L` : `${profile.value.quantity} €`,
+);
+
+// Tier ladders (COMBINA 1/2/3+ services) come from the catalogue, not the
+// station payload, and only multi-tier programmes get one.
+const programmeTiers = computed(() => buildTierLadders(programmes.value));
+function tiersFor(programmeId: string | null | undefined) {
+  if (!programmeId) return [];
+  return programmeTiers.value.get(programmeId) ?? [];
+}
+
 const sortOptions: Array<{ key: SortMode; label: string }> = [
   { key: "distance", label: "Distância" },
   { key: "price", label: "Preço" },
@@ -128,7 +141,6 @@ function buildQuery(): StationQuery | null {
     radius_km: profile.value.radiusKm,
     cards: profile.value.cards,
     services: profile.value.services,
-    fill_litres: profile.value.fillLitres,
   };
 
   if (usesPoint.value && geoCoords.value) {
@@ -419,6 +431,31 @@ async function runInitialSearch(): Promise<void> {
           </div>
         </div>
       </div>
+
+      <div class="row" style="align-items: flex-end">
+        <div class="field" style="min-width: 14rem; flex: 1">
+          <label>Quantidade: {{ quantityLabel }}</label>
+          <div class="tabs" style="margin-bottom: 0.35rem">
+            <button
+              type="button"
+              class="chip"
+              :class="{ 'is-on': profile.quantityUnit === 'litres' }"
+              @click="profile.quantityUnit = 'litres'"
+            >
+              Litros
+            </button>
+            <button
+              type="button"
+              class="chip"
+              :class="{ 'is-on': profile.quantityUnit === 'euros' }"
+              @click="profile.quantityUnit = 'euros'"
+            >
+              Euros
+            </button>
+          </div>
+          <input v-model.number="profile.quantity" type="range" min="5" max="100" step="5" />
+        </div>
+      </div>
     </div>
 
     <p v-if="error" class="notice notice-bad">
@@ -479,6 +516,9 @@ async function runInitialSearch(): Promise<void> {
                 v-for="row in group.rows"
                 :key="`${row.station.id}-${row.fuel}`"
                 :station="row.station"
+                :quantity="profile.quantity"
+                :quantity-unit="profile.quantityUnit"
+                :tiers="tiersFor(row.station.discount?.program_id)"
                 @focus="() => undefined"
               />
             </div>
@@ -490,6 +530,9 @@ async function runInitialSearch(): Promise<void> {
             v-for="row in stationRows"
             :key="`${row.station.id}-${row.fuel}`"
             :station="row.station"
+            :quantity="profile.quantity"
+            :quantity-unit="profile.quantityUnit"
+            :tiers="tiersFor(row.station.discount?.program_id)"
             @focus="() => undefined"
           />
         </template>

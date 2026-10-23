@@ -44,7 +44,10 @@ A Vue 3 PWA served from the same Worker (`/`), designed phone-first for use at t
   service starts selected, so the first search already reflects every discount the catalogue knows;
   each card leads with the best price after discounts and lists the remaining prices — the guaranteed
   slice, the base price and any other programme the caller qualifies for — so no price is hidden
-  behind a mode switch. Selecting several fuels
+  behind a mode switch. A **Litros / Euros** switch and a quantity slider turn that into the spend and
+  the saving for the fill you actually need (`50 L custam 91,00 € · poupas 15,00 €`), and tiered
+  programmes such as COMBINA show their 1 / 2 / 3+ service ladder with the active tier highlighted.
+  Selecting several fuels
   puts the cards in one collapsible section per fuel (with its own count, and `20 de 84` when the
   results limit truncates it). Fuel filter chips and those section headers share an identity colour —
   diesel yellow, petrol lime green, GPL blue, specials in the same family — while the map keeps its

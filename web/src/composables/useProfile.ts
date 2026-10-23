@@ -7,6 +7,7 @@ import { readJson, writeJson } from "../lib/storage";
 export type SortMode = "distance" | "price";
 export type SortOrder = "asc" | "desc";
 export type ResultLimit = number | "all";
+export type QuantityUnit = "litres" | "euros";
 
 export interface Profile {
   version: number;
@@ -20,10 +21,15 @@ export interface Profile {
   limit: ResultLimit;
   sort: SortMode;
   sortOrder: SortOrder;
-  fillLitres: number;
+  /** Fill size used for the spend/save estimate, in litres or euros. */
+  quantity: number;
+  quantityUnit: QuantityUnit;
 }
 
 const PROFILE_VERSION = 6;
+
+const QUANTITY_MIN = 5;
+const QUANTITY_MAX = 100;
 
 const DEFAULTS: Profile = {
   version: PROFILE_VERSION,
@@ -40,14 +46,22 @@ const DEFAULTS: Profile = {
   // The main page opens ordered by the lowest price, cheapest first.
   sort: "price",
   sortOrder: "asc",
-  fillLitres: 50,
+  quantity: 50,
+  quantityUnit: "litres",
 };
 
-const stored = readJson<Partial<Profile> & { discountMode?: unknown }>("profile", {});
+const stored = readJson<
+  Partial<Profile> & { discountMode?: unknown; fillLitres?: number }
+>("profile", {});
 const initial: Profile = { ...DEFAULTS, ...stored };
 // The best-case/guaranteed filter is gone: cards show the best price plus
 // every remaining price. Drop the obsolete key instead of persisting it.
-delete (initial as Profile & { discountMode?: unknown }).discountMode;
+delete (initial as Profile & { discountMode?: unknown; fillLitres?: unknown }).discountMode;
+// The old fixed fill size becomes the default quantity.
+if (stored.quantity === undefined && typeof stored.fillLitres === "number") {
+  initial.quantity = Math.min(QUANTITY_MAX, Math.max(QUANTITY_MIN, Math.round(stored.fillLitres / 5) * 5));
+}
+delete (initial as Profile & { fillLitres?: unknown }).fillLitres;
 // Older builds stored a separate "effective price" order; there is now one
 // price order, so fold it into "price".
 if ((initial.sort as string) === "effective_price") initial.sort = "price";

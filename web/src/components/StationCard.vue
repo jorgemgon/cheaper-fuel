@@ -2,14 +2,24 @@
 import type { StationInfo } from "@contracts";
 import { computed } from "vue";
 
+import type { QuantityUnit } from "../composables/useProfile";
+import { fillEstimate } from "../lib/fill-costs";
 import { formatCents, formatKm, formatRelativeTime } from "../lib/format";
 import { bestPriceDisplay, remainingPriceOptions } from "../lib/price-options";
+import type { ProgrammeTier } from "../lib/programme-tiers";
 
-const props = defineProps<{ station: StationInfo }>();
+const props = defineProps<{
+  station: StationInfo;
+  quantity: number;
+  quantityUnit: QuantityUnit;
+  /** Tier ladder for programmes like COMBINA (1 / 2 / 3+ services). */
+  tiers?: ProgrammeTier[];
+}>();
 const emit = defineEmits<{ focus: [id: number] }>();
 
 const bestPrice = computed(() => bestPriceDisplay(props.station));
 const priceOptions = computed(() => remainingPriceOptions(props.station));
+const estimate = computed(() => fillEstimate(props.station, props.quantity, props.quantityUnit));
 </script>
 
 <template>
@@ -49,6 +59,18 @@ const priceOptions = computed(() => remainingPriceOptions(props.station));
       </div>
     </div>
 
+    <div v-if="estimate" class="fill-summary">
+      <span class="fill-total">
+        <template v-if="props.quantityUnit === 'litres'">
+          {{ estimate.quantityLabel }} custam {{ estimate.spendLabel }}
+        </template>
+        <template v-else>
+          {{ estimate.quantityLabel }} dão {{ estimate.litresLabel }}
+        </template>
+      </span>
+      <span v-if="estimate.savingsLabel" class="fill-saving">{{ estimate.savingsLabel }}</span>
+    </div>
+
     <template v-if="props.station.discount">
       <div class="row">
         <span class="badge badge-good">
@@ -58,6 +80,17 @@ const priceOptions = computed(() => remainingPriceOptions(props.station));
         <span class="badge">{{ formatCents(props.station.discount.applied_cents) }}</span>
         <span class="badge">{{ props.station.discount.schedule_label }}</span>
         <span v-if="props.station.discount.stale" class="badge badge-warn">verificar</span>
+      </div>
+      <div v-if="props.tiers && props.tiers.length > 1" class="tier-ladder">
+        <span class="tiny muted">Níveis:</span>
+        <span
+          v-for="tier in props.tiers"
+          :key="tier.id"
+          class="tier-step"
+          :class="{ 'is-on': tier.id === props.station.discount.tier }"
+        >
+          {{ tier.label }} · {{ formatCents(tier.cents) }}
+        </span>
       </div>
       <p class="tiny muted" style="margin: 0">{{ props.station.discount.description }}</p>
     </template>

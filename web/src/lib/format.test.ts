@@ -6,6 +6,7 @@ import {
   formatKm,
   formatMoney,
   formatPrice,
+  formatQuantity,
   formatRelativeTime,
   parseDgegDate,
 } from "./format";
@@ -35,6 +36,14 @@ describe("formatKm", () => {
   it("formats distances with one decimal", () => {
     expect(formatKm(2.82)).toBe("2,8 km");
     expect(formatKm(null)).toBe("—");
+  });
+});
+
+describe("formatQuantity", () => {
+  it("formats fuel quantities with at most one decimal", () => {
+    expect(formatQuantity(50)).toBe("50");
+    expect(formatQuantity(27.47)).toBe("27,5");
+    expect(formatQuantity(null)).toBe("—");
   });
 });
 

@@ -12,6 +12,8 @@ const moneyFormatter = new Intl.NumberFormat("pt-PT", {
 
 const distanceFormatter = new Intl.NumberFormat("pt-PT", { maximumFractionDigits: 1 });
 
+const quantityFormatter = new Intl.NumberFormat("pt-PT", { maximumFractionDigits: 1 });
+
 const UNIT_SUFFIX: Record<string, string> = {
   litro: "€/litro",
   kg: "€/kg",
@@ -33,6 +35,12 @@ export function formatMoney(value: number | null | undefined): string {
 export function formatKm(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return "—";
   return `${distanceFormatter.format(value)} km`;
+}
+
+/** Fuel quantity (litres, kg or m³) with at most one decimal. */
+export function formatQuantity(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  return quantityFormatter.format(value);
 }
 
 export function formatCents(cents: number | null | undefined): string {
