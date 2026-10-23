@@ -201,22 +201,22 @@
       "supplier": "REPSOL",
       "partners": [],
       "stationMatch": { "brands": ["REPSOL"], "namePrefixes": ["Repsol"] },
-      "requires": [],
+      "requires": ["repsol_partner_card"],
       "minServices": 0,
       "channel": "instant",
       "valueType": "cents_per_litre",
-      "value": 10,
+      "value": 8,
       "combine": "sum",
       "caps": { "litresPerFill": null, "litresPerYear": null },
       "validFrom": null,
       "validUntil": null,
-      "confidence": "medium",
+      "confidence": "high",
       "source": {
         "url": "https://www.repsol.pt/particulares/beneficios/plano-motor/",
         "retrievedAt": "2026-10-23",
         "contentHash": null,
         "fetchMode": "auto",
-        "notes": "Headline is 10 cênt./litro from the official page title; enrolment conditions were not present in the fetched body, so this stays medium confidence and is not applied to effective prices until verified."
+        "notes": "Official benefits table: the Cartão de parceiro gives 8 cênt./litro. The page headline advertises up to 10 cênt./litro (an additional component the page does not itemise), so the guaranteed figure is used."
       },
       "updatedAt": "2026-10-23"
     },
@@ -232,22 +232,22 @@
       "supplier": "REPSOL",
       "partners": [],
       "stationMatch": { "brands": ["REPSOL"], "namePrefixes": ["Repsol"] },
-      "requires": ["repsol_energy_contract"],
+      "requires": ["repsol_partner_card", "repsol_electricity"],
       "minServices": 1,
       "channel": "instant",
-      "valueType": null,
-      "value": null,
+      "valueType": "cents_per_litre",
+      "value": 13,
       "combine": "sum",
       "caps": { "litresPerFill": null, "litresPerYear": null },
       "validFrom": null,
       "validUntil": null,
-      "confidence": "medium",
+      "confidence": "high",
       "source": {
         "url": "https://www.repsol.pt/particulares/beneficios/plano-motor-luz/",
         "retrievedAt": "2026-10-23",
         "contentHash": null,
         "fetchMode": "auto",
-        "notes": "Catalogue entry only: the public page advertises discounts on both the bill and fuel but does not state a per-litre value, so it is tracked unquantified rather than guessed."
+        "notes": "Official benefits table: Cartão de parceiro Motor e Luz gives 13 cênt./litro when Repsol electricity is contracted, plus 2% of the electricity bill as My Repsol balance. Headline advertises up to 15 cênt./litro."
       },
       "updatedAt": "2026-10-23"
     },
@@ -263,22 +263,22 @@
       "supplier": "REPSOL",
       "partners": [],
       "stationMatch": { "brands": ["REPSOL"], "namePrefixes": ["Repsol"] },
-      "requires": ["repsol_energy_contract"],
+      "requires": ["repsol_partner_card", "repsol_electricity", "repsol_gas"],
       "minServices": 2,
       "channel": "instant",
-      "valueType": null,
-      "value": null,
+      "valueType": "cents_per_litre",
+      "value": 18,
       "combine": "sum",
       "caps": { "litresPerFill": null, "litresPerYear": null },
       "validFrom": null,
       "validUntil": null,
-      "confidence": "medium",
+      "confidence": "high",
       "source": {
         "url": "https://www.repsol.pt/particulares/beneficios/plano-motor-luz-calor/",
         "retrievedAt": "2026-10-23",
         "contentHash": null,
         "fetchMode": "auto",
-        "notes": "Catalogue entry only, unquantified for the same reason as Plano Motor e Luz."
+        "notes": "Official benefits table: Cartão de parceiro Motor, Luz e Calor gives 18 cênt./litro when Repsol electricity and gas are contracted, plus 3% of the electricity bill as My Repsol balance. Headline advertises up to 20 cênt./litro."
       },
       "updatedAt": "2026-10-23"
     },
@@ -294,22 +294,22 @@
       "supplier": "BP",
       "partners": ["PINGO DOCE"],
       "stationMatch": { "brands": ["BP"], "namePrefixes": ["BP"] },
-      "requires": ["pingo_doce_card"],
+      "requires": ["poupa_mais_card", "spend:pingodoce_40"],
       "minServices": 0,
       "channel": "coupon",
-      "valueType": null,
-      "value": null,
+      "valueType": "eur_per_fill",
+      "value": 2,
       "combine": "sum",
       "caps": { "litresPerFill": null, "litresPerYear": null },
       "validFrom": null,
       "validUntil": null,
-      "confidence": "medium",
+      "confidence": "high",
       "source": {
         "url": "https://www.pingodoce.pt/parcerias/bp/",
         "retrievedAt": "2026-10-23",
         "contentHash": null,
         "fetchMode": "auto",
-        "notes": "Official partnership exists (shopping at Pingo Doce gives savings at BP), but the value is campaign-dependent and was not stated in the fetched page body. Tracked unquantified; bp.com itself blocks automated fetches with HTTP 403."
+        "notes": "Poupa Mais card: every 40 EUR spent at Pingo Doce (mainland and Madeira) accrues 2 EUR of BP fuel credit, valid until the end of the following month. Redemption is capped at 25% of the fill value and 20 EUR per day, which does not bind a typical 50 L fill; per-fill caps are not modelled beyond that."
       },
       "updatedAt": "2026-10-23"
     },
@@ -317,7 +317,7 @@
       "id": "bp-voltar-e-poupar",
       "schemaVersion": 1,
       "programId": "bp-voltar-e-poupar",
-      "programTitle": "Voltar é poupar",
+      "programTitle": "Voltar é poupar (edição 18 mai – 30 jun 2026)",
       "tierId": null,
       "tierLabel": null,
       "tierRank": 0,
@@ -340,7 +340,7 @@
         "retrievedAt": "2026-10-23",
         "contentHash": null,
         "fetchMode": "manual",
-        "notes": "Time-boxed campaign whose terms are published as a PDF. Retained deliberately as an expired fixture: it must derive status \"expired\" and never affect a price. bp.com blocks automated fetches (403), hence manual mode."
+        "notes": "Historical edition of a campaign BP re-runs periodically, retained deliberately as an expiry fixture: it must derive status \"expired\" and never affect a price. Fuel-grade-specific vouchers (bp Ultimate) cannot be mapped to DGEG fuel types, so campaigns of this shape are catalogued but not applied. bp.com blocks automated fetches (403), hence manual mode."
       },
       "updatedAt": "2026-10-23"
     }

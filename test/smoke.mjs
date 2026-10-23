@@ -179,6 +179,35 @@ async function main() {
     noCardStations.every((station) => !station.discount),
   );
 
+  const repsol = await call("find_stations", {
+    location: "Leiria",
+    fuels: ["diesel"],
+    brand: "repsol",
+    cards: ["repsol_partner_card"],
+    services: ["repsol_electricity"],
+    limit: 3,
+  });
+  const repsolStations = repsol.json.result?.fuels?.[0]?.stations ?? [];
+  check(
+    "Repsol tier applies with card + electricity contract",
+    repsolStations.some((station) => station.discount?.applied_cents === 13),
+    repsolStations.map((station) => station.discount?.applied_cents ?? 0).join(", "),
+  );
+
+  const bp = await call("find_stations", {
+    location: "Leiria",
+    fuels: ["diesel"],
+    brand: "bp",
+    cards: ["poupa_mais_card"],
+    limit: 3,
+  });
+  const bpStations = bp.json.result?.fuels?.[0]?.stations ?? [];
+  check(
+    "BP Poupa Mais applies with the Pingo Doce card",
+    bpStations.some((station) => station.discount?.applied_cents === 4),
+    bpStations.map((station) => station.discount?.applied_cents ?? 0).join(", "),
+  );
+
   await client.close();
 
   const failed = results.filter((result) => !result.ok);

@@ -173,6 +173,61 @@ describe("resolveForStation", () => {
     expect(perFill.applied?.appliedCents).toBeCloseTo(10, 3);
   });
 
+  it("satisfies requirements from declared services as well as cards", () => {
+    const outcome = resolveForStation(
+      [
+        makeDiscount({
+          id: "repsol-luz",
+          programId: "repsol-motor",
+          tierId: "motor-luz",
+          minServices: 1,
+          value: 13,
+          requires: ["repsol_partner_card", "repsol_electricity"],
+          stationMatch: { brands: ["REPSOL"], namePrefixes: [] },
+        }),
+      ],
+      { brand: "REPSOL", name: "Repsol Leiria", price: 2 },
+      "litro",
+      sanitizeProfile({ cards: ["repsol_partner_card"], services: ["repsol_electricity"] }),
+      TODAY,
+    );
+
+    expect(outcome.applied?.appliedCents).toBe(13);
+    expect(outcome.applied?.tierId).toBe("motor-luz");
+  });
+
+  it("falls back to a lower tier when a higher tier's requirements are unmet", () => {
+    const rows = [
+      makeDiscount({
+        id: "base",
+        programId: "repsol-motor",
+        tierId: "motor",
+        minServices: 0,
+        value: 8,
+        requires: ["repsol_partner_card"],
+      }),
+      makeDiscount({
+        id: "luz-calor",
+        programId: "repsol-motor",
+        tierId: "motor-luz-calor",
+        minServices: 2,
+        value: 18,
+        requires: ["repsol_partner_card", "repsol_electricity", "repsol_gas"],
+      }),
+    ];
+
+    const outcome = resolveForStation(
+      rows,
+      { brand: "GALP", name: "Galp", price: 2 },
+      "litro",
+      sanitizeProfile({ cards: ["repsol_partner_card"], services: ["repsol_electricity", "x"] }),
+      TODAY,
+    );
+
+    // Two services would qualify for the top tier by count, but the gas contract is missing.
+    expect(outcome.applied?.tierId).toBe("motor");
+  });
+
   it("matches franchises by name prefix when the brand is generic", () => {
     const discount = makeDiscount({
       id: "a",

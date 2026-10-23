@@ -168,9 +168,10 @@ function possessionRequirements(discount: Discount): string[] {
 }
 
 function missingRequirements(discount: Discount, profile: DiscountProfile): string[] {
-  return possessionRequirements(discount).filter(
-    (requirement) => !profile.cards.includes(normalizeText(requirement)),
-  );
+  // `requires` are capability keys: they can be satisfied by a card/app or by a
+  // service the caller declares (for example a Repsol electricity contract).
+  const held = new Set([...profile.cards, ...profile.services]);
+  return possessionRequirements(discount).filter((requirement) => !held.has(normalizeText(requirement)));
 }
 
 function matchesStation(discount: Discount, station: StationLike, unit: string | null): boolean {

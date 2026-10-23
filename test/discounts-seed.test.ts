@@ -44,6 +44,22 @@ describe("discount seed", () => {
     expect(expired.length).toBeGreaterThan(0);
   });
 
+  it("quantifies the Repsol tiers from the official benefits table", () => {
+    const repsol = parsed.filter((entry) => entry.programId === "repsol-motor");
+    expect(repsol).toHaveLength(3);
+    expect(repsol.every((entry) => entry.confidence === "high")).toBe(true);
+    expect(repsol.every((entry) => entry.valueType === "cents_per_litre")).toBe(true);
+    expect(repsol.map((entry) => entry.value ?? 0).sort((a, b) => a - b)).toEqual([8, 13, 18]);
+  });
+
+  it("quantifies the BP Poupa Mais partnership", () => {
+    const bp = parsed.find((entry) => entry.programId === "bp-pingo-doce");
+    expect(bp?.valueType).toBe("eur_per_fill");
+    expect(bp?.value).toBe(2);
+    expect(bp?.confidence).toBe("high");
+    expect(bp?.requires).toContain("poupa_mais_card");
+  });
+
   it("refreshes provenance before it goes stale for still-applicable programmes", () => {
     for (const entry of parsed) {
       if (discountStatus(entry, today) === "expired") continue;
