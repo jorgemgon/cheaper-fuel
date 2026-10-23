@@ -17,12 +17,13 @@ import StationCard from "../components/StationCard.vue";
 import { useGeolocation } from "../composables/useGeolocation";
 import { useProfile, type ResultLimit, type SortMode } from "../composables/useProfile";
 import { allProfileKeys, buildProfileOptions } from "../lib/discount-labels";
+import { DEFAULT_QUANTITY, normalizeQuantity, QUANTITY_MAX, QUANTITY_MIN } from "../lib/fill-costs";
 import { fuelColor } from "../lib/fuel-colors";
 import { formatDate, formatRelativeTime } from "../lib/format";
 import { buildFuelGroups, fuelGroupCount } from "../lib/fuel-groups";
 import { GEO_CACHE_TTL_MS, isFresh } from "../lib/geo";
 import { buildTierLadders } from "../lib/programme-tiers";
-import { readSearchContext, saveSearchContext } from "../lib/search-context";
+import { clearSearchContext, readSearchContext, saveSearchContext } from "../lib/search-context";
 import { nextSortState } from "../lib/sort-order";
 import { readJson, writeJson } from "../lib/storage";
 
@@ -72,6 +73,15 @@ const fuelGroups = computed(() => buildFuelGroups(fuels.value));
 const stationRows = computed(() => fuelGroups.value.flatMap((group) => group.rows));
 const stations = computed<StationInfo[]>(() => stationRows.value.map((row) => row.station));
 const multipleFuels = computed(() => fuels.value.length > 1);
+// An empty fuel filter means "every fuel", not "no results".
+const availableFuelNames = computed(() => (meta.value?.fuels ?? []).map((fuel) => fuel.name));
+const effectiveFuelNames = computed(() =>
+  profile.value.fuels.length > 0 ? profile.value.fuels : availableFuelNames.value,
+);
+// Empty fuels do not deserve a section; keep the ones that actually answered.
+const visibleFuelGroups = computed(() =>
+  multipleFuels.value ? fuelGroups.value.filter((group) => group.rows.length > 0) : fuelGroups.value,
+);
 const distinctStations = computed(() => new Set(stations.value.map((station) => station.id)).size);
 const covered = computed(() => result.value?.result.municipalities_covered ?? []);
 const effectiveRadius = computed(() => result.value?.result.effective_radius_km ?? null);
@@ -134,6 +144,55 @@ const sortOptions: Array<{ key: SortMode; label: string }> = [
   { key: "price", label: "Preço" },
 ];
 
+const quantityInput = ref<HTMLInputElement | null>(null);
+
+function clearFuels(): void {
+  // No fuel selected means every fuel is requested.
+  profile.value.fuels = [];
+}
+
+function clearCards(): void {
+  profile.value.cards = [];
+}
+
+function clearServices(): void {
+  profile.value.services = [];
+}
+
+function clearLocation(): void {
+  profile.value.location = "";
+  // Clearing the text of the active place search also clears its results.
+  if (searchedFrom.value === "place") {
+    searchedFrom.value = null;
+    result.value = null;
+    error.value = null;
+    errorHint.value = null;
+    searchedAt.value = null;
+    clearSearchContext();
+  }
+}
+
+function onQuantityInput(event: Event): void {
+  const input = event.target as HTMLInputElement;
+  // Keep the last valid value while the field is momentarily empty.
+  if (input.value.trim() === "") return;
+  const next = normalizeQuantity(input.value);
+  profile.value.quantity = next;
+  if (input.value !== String(next)) input.value = String(next);
+}
+
+function syncQuantityInput(): void {
+  const input = quantityInput.value;
+  if (input && input.value !== String(profile.value.quantity)) {
+    input.value = String(profile.value.quantity);
+  }
+}
+
+function resetQuantity(): void {
+  profile.value.quantity = DEFAULT_QUANTITY;
+  syncQuantityInput();
+}
+
 function setSort(key: SortMode) {
   const next = nextSortState(
     { sort: profile.value.sort, sortOrder: profile.value.sortOrder },
@@ -145,7 +204,7 @@ function setSort(key: SortMode) {
 
 function buildQuery(): StationQuery | null {
   const base: StationQuery = {
-    fuels: profile.value.fuels,
+    fuels: effectiveFuelNames.value,
     limit: profile.value.limit,
     // The card's headline is the lowest price after discounts, so price order
     // must rank by that same price, not the undiscounted one.
@@ -416,6 +475,15 @@ async function runInitialSearch(): Promise<void> {
             placeholder="Concelho, localidade ou código postal"
             aria-label="Local de pesquisa"
           />
+          <button
+            v-if="profile.location.trim().length > 0"
+            type="button"
+            class="clear-btn"
+            aria-label="Limpar local"
+            @click="clearLocation"
+          >
+            ×
+          </button>
           <button class="btn" type="submit" :disabled="loading">Procurar</button>
         </form>
       </div>
@@ -431,17 +499,32 @@ async function runInitialSearch(): Promise<void> {
       </p>
 
       <div class="field">
-        <label>Combustível</label>
+        <div class="field-head">
+          <label>Combustível</label>
+          <button v-if="profile.fuels.length > 0" type="button" class="clear-btn" @click="clearFuels">
+            Limpar
+          </button>
+        </div>
         <ChipGroup :options="fuelOptions" :model-value="profile.fuels" @toggle="toggleFuel" />
       </div>
 
       <div class="field">
-        <label>Cartões e apps</label>
+        <div class="field-head">
+          <label>Cartões e apps</label>
+          <button v-if="profile.cards.length > 0" type="button" class="clear-btn" @click="clearCards">
+            Limpar
+          </button>
+        </div>
         <ChipGroup :options="cardOptions" :model-value="profile.cards" @toggle="toggleCard" />
       </div>
 
       <div v-if="serviceOptions.length > 0" class="field">
-        <label>Serviços e contratos</label>
+        <div class="field-head">
+          <label>Serviços e contratos</label>
+          <button v-if="profile.services.length > 0" type="button" class="clear-btn" @click="clearServices">
+            Limpar
+          </button>
+        </div>
         <ChipGroup :options="serviceOptions" :model-value="profile.services" @toggle="toggleService" />
       </div>
 
@@ -485,26 +568,52 @@ async function runInitialSearch(): Promise<void> {
 
       <div class="row" style="align-items: flex-end">
         <div class="field" style="min-width: 14rem; flex: 1">
-          <label>Quantidade: {{ quantityLabel }}</label>
-          <div class="tabs" style="margin-bottom: 0.35rem">
+          <div class="field-head">
+            <label for="quantity">Quantidade: {{ quantityLabel }}</label>
             <button
+              v-if="profile.quantity !== DEFAULT_QUANTITY"
               type="button"
-              class="chip"
-              :class="{ 'is-on': profile.quantityUnit === 'litres' }"
-              @click="profile.quantityUnit = 'litres'"
+              class="clear-btn"
+              @click="resetQuantity"
             >
-              Litros
-            </button>
-            <button
-              type="button"
-              class="chip"
-              :class="{ 'is-on': profile.quantityUnit === 'euros' }"
-              @click="profile.quantityUnit = 'euros'"
-            >
-              Euros
+              Limpar
             </button>
           </div>
-          <input v-model.number="profile.quantity" type="range" min="5" max="100" step="5" />
+          <div class="row" style="gap: 0.5rem; align-items: center; margin-bottom: 0.35rem">
+            <div class="tabs">
+              <button
+                type="button"
+                class="chip"
+                :class="{ 'is-on': profile.quantityUnit === 'litres' }"
+                @click="profile.quantityUnit = 'litres'"
+              >
+                Litros
+              </button>
+              <button
+                type="button"
+                class="chip"
+                :class="{ 'is-on': profile.quantityUnit === 'euros' }"
+                @click="profile.quantityUnit = 'euros'"
+              >
+                Euros
+              </button>
+            </div>
+            <input
+              id="quantity"
+              ref="quantityInput"
+              class="input quantity-input"
+              type="number"
+              inputmode="numeric"
+              :min="QUANTITY_MIN"
+              :max="QUANTITY_MAX"
+              step="1"
+              :value="profile.quantity"
+              aria-label="Quantidade"
+              @input="onQuantityInput"
+              @blur="syncQuantityInput"
+            />
+          </div>
+          <input v-model.number="profile.quantity" type="range" :min="QUANTITY_MIN" :max="QUANTITY_MAX" step="1" />
         </div>
       </div>
     </div>
@@ -528,7 +637,10 @@ async function runInitialSearch(): Promise<void> {
           <h2>
             {{ countLabel }}
             <template v-if="covered.length > 0"> · {{ covered.length }} concelhos</template>
-            <template v-if="multipleFuels"> · {{ fuels.length }} combustíveis</template>
+            <template v-if="multipleFuels">
+              · {{ visibleFuelGroups.length }}
+              {{ visibleFuelGroups.length === 1 ? "combustível" : "combustíveis" }}
+            </template>
           </h2>
           <span v-if="effectiveRadius" class="badge">raio {{ effectiveRadius }} km</span>
         </div>
@@ -549,7 +661,7 @@ async function runInitialSearch(): Promise<void> {
 
         <template v-else-if="multipleFuels">
           <details
-            v-for="group in fuelGroups"
+            v-for="group in visibleFuelGroups"
             :key="group.fuel"
             class="fuel-group"
             :style="{ '--fuel-color': group.color }"

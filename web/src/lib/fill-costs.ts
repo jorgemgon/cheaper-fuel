@@ -5,6 +5,17 @@ import { formatMoney, formatQuantity } from "./format";
 
 const UNIT_SYMBOL: Record<string, string> = { litro: "L", kg: "kg", m3: "m³" };
 
+export const QUANTITY_MIN = 1;
+export const QUANTITY_MAX = 200;
+export const DEFAULT_QUANTITY = 50;
+
+/** Clamp a typed quantity; empty or invalid input falls back to the default. */
+export function normalizeQuantity(value: unknown): number {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_QUANTITY;
+  return Math.min(QUANTITY_MAX, Math.max(QUANTITY_MIN, Math.round(parsed)));
+}
+
 /** Fuel unit label: litres, kilograms or cubic metres. */
 export function unitSymbol(unit: string | null | undefined): string {
   if (!unit) return "L";

@@ -18,9 +18,12 @@ export const findStationsInput = z.object({
   fuels: z
     .array(z.string())
     .min(1)
-    .max(5)
+    .max(20)
     .optional()
-    .describe('Fuel names or ids, e.g. ["diesel"], ["gasolina 95", "98"]. Defaults to diesel + petrol 95.'),
+    .describe(
+      'Fuel names or ids, e.g. ["diesel"], ["gasolina 95", "98"]. Defaults to diesel + petrol 95; ' +
+        "pass every fuel for an unfiltered list.",
+    ),
   brand: z.string().optional().describe('Brand name fragment, e.g. "galp", "bp", "pingo doce".'),
   station_type: z
     .enum(["autoestrada", "supermercado", "outro"])

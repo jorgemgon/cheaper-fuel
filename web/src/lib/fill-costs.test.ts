@@ -1,7 +1,7 @@
 import type { DiscountInfo, StationInfo } from "@contracts";
 import { describe, expect, it } from "vitest";
 
-import { fillEstimate, unitSymbol } from "./fill-costs";
+import { DEFAULT_QUANTITY, fillEstimate, normalizeQuantity, unitSymbol } from "./fill-costs";
 
 function discount(effective: number): DiscountInfo {
   return {
@@ -65,6 +65,19 @@ describe("unitSymbol", () => {
     expect(unitSymbol("kg")).toBe("kg");
     expect(unitSymbol("m3")).toBe("m³");
     expect(unitSymbol(null)).toBe("L");
+  });
+});
+
+describe("normalizeQuantity", () => {
+  it("clamps typed values and falls back on empty input", () => {
+    expect(normalizeQuantity(37)).toBe(37);
+    expect(normalizeQuantity("42")).toBe(42);
+    expect(normalizeQuantity(12.6)).toBe(13);
+    expect(normalizeQuantity(500)).toBe(200);
+    expect(normalizeQuantity(0)).toBe(DEFAULT_QUANTITY);
+    expect(normalizeQuantity(-5)).toBe(DEFAULT_QUANTITY);
+    expect(normalizeQuantity("")).toBe(DEFAULT_QUANTITY);
+    expect(normalizeQuantity(Number.NaN)).toBe(DEFAULT_QUANTITY);
   });
 });
 

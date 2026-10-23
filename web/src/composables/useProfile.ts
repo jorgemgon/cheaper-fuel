@@ -1,5 +1,9 @@
 import { ref, watch } from "vue";
 
+import {
+  DEFAULT_QUANTITY,
+  normalizeQuantity,
+} from "../lib/fill-costs";
 import { readJson, writeJson } from "../lib/storage";
 
 // The dashboard has one price order: the lowest price on the card (after
@@ -28,9 +32,6 @@ export interface Profile {
 
 const PROFILE_VERSION = 6;
 
-const QUANTITY_MIN = 5;
-const QUANTITY_MAX = 100;
-
 const DEFAULTS: Profile = {
   version: PROFILE_VERSION,
   fuels: ["Gasóleo simples"],
@@ -46,7 +47,7 @@ const DEFAULTS: Profile = {
   // The main page opens ordered by the lowest price, cheapest first.
   sort: "price",
   sortOrder: "asc",
-  quantity: 50,
+  quantity: DEFAULT_QUANTITY,
   quantityUnit: "litres",
 };
 
@@ -59,8 +60,9 @@ const initial: Profile = { ...DEFAULTS, ...stored };
 delete (initial as Profile & { discountMode?: unknown; fillLitres?: unknown }).discountMode;
 // The old fixed fill size becomes the default quantity.
 if (stored.quantity === undefined && typeof stored.fillLitres === "number") {
-  initial.quantity = Math.min(QUANTITY_MAX, Math.max(QUANTITY_MIN, Math.round(stored.fillLitres / 5) * 5));
+  initial.quantity = normalizeQuantity(stored.fillLitres);
 }
+initial.quantity = normalizeQuantity(initial.quantity);
 delete (initial as Profile & { fillLitres?: unknown }).fillLitres;
 // Older builds stored a separate "effective price" order; there is now one
 // price order, so fold it into "price".
@@ -88,9 +90,7 @@ export function useProfile() {
   return {
     profile,
     toggleFuel(fuel: string) {
-      const next = toggle(profile.value.fuels, fuel);
-      // The API requires at least one fuel; never let the selection go empty.
-      profile.value.fuels = next.length > 0 ? next : profile.value.fuels;
+      profile.value.fuels = toggle(profile.value.fuels, fuel);
     },
     toggleCard(card: string) {
       profile.value.cards = toggle(profile.value.cards, card);

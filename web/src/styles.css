@@ -231,6 +231,37 @@ p {
   flex-shrink: 0;
 }
 
+/* Label + per-field clear action. */
+.field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.clear-btn {
+  flex-shrink: 0;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.clear-btn:hover,
+.clear-btn:focus-visible {
+  color: var(--accent);
+}
+
+.quantity-input {
+  flex: 0 0 auto;
+  width: 5.5rem;
+  min-width: 0;
+}
+
 .btn {
   border: 1px solid var(--border);
   background: var(--surface-2);

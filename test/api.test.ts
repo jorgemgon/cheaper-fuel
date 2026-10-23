@@ -72,6 +72,29 @@ describe("query coercion", () => {
     expect(() => findStationsInput.parse({ location: "Leiria", limit: "bogus" })).toThrow();
     expect(() => findStationsInput.parse({ location: "Leiria", limit: 0 })).toThrow();
   });
+
+  it("accepts every catalogue fuel so an empty filter can request them all", () => {
+    const fuels = [
+      "GPL Auto",
+      "GNC (gás natural comprimido) - €/m3",
+      "GNL (gás natural liquefeito) - €/kg",
+      "GNC (gás natural comprimido) - €/kg",
+      "Gasóleo simples",
+      "Gasóleo especial",
+      "Biodiesel B15",
+      "Gasóleo colorido",
+      "Gasolina simples 95",
+      "Gasolina especial 95",
+      "Gasolina de mistura (motores a 2 tempos)",
+      "Gasolina 98",
+      "Gasolina especial 98",
+    ];
+
+    expect(findStationsInput.parse({ location: "Leiria", fuels }).fuels).toHaveLength(13);
+    expect(() =>
+      findStationsInput.parse({ location: "Leiria", fuels: Array.from({ length: 21 }, () => "diesel") }),
+    ).toThrow();
+  });
 });
 
 describe("handleApi", () => {
